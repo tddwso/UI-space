@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>UI 3D 房間</title>
+<meta name="description" content="可操控角色在其中走動的 3D UI 元件房間，純 HTML／CSS／JS，可直接用 GitHub Pages 發布。">
+<style>
+  :root {
+    --bg: #ffffff; --bg-subtle: #f6f8fa; --bg-inset: #eef1f4; --border: #d0d7de;
+    --text: #1f2328; --text-muted: #656d76;
+    --accent: #0969da; --accent-hover: #0757ba; --accent-text: #ffffff;
+    --success: #1a7f37; --success-bg: #dafbe1; --warning: #9a6700; --warning-bg: #fff8c5;
+    --danger: #cf222e; --danger-bg: #ffebe9; --info-bg: #ddf4ff;
+    --shadow: 0 1px 2px rgba(31,35,40,.06), 0 4px 16px rgba(31,35,40,.08);
+    --wall: #f3f5f8; --wall-top: #fbfcfd; --base: #dfe4ea;
+    --floor: #cdb99a; --tile: rgba(80,55,25,.18);
+    --ceil: #ffffff; --light: rgba(255,244,200,.95);
+    --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1117; --bg-subtle: #161b22; --bg-inset: #21262d; --border: #30363d;
+      --text: #e6edf3; --text-muted: #8b949e;
+      --accent: #2f81f7; --accent-hover: #4493f8;
+      --success: #3fb950; --success-bg: #12261e; --warning: #d29922; --warning-bg: #2d2411;
+      --danger: #f85149; --danger-bg: #301a1f; --info-bg: #10243f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.4);
+      --wall: #151a21; --wall-top: #1b212a; --base: #0d1117;
+      --floor: #3a3128; --tile: rgba(0,0,0,.35);
+      --ceil: #11151b; --light: rgba(255,236,170,.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --bg-subtle: #161b22; --bg-inset: #21262d; --border: #30363d;
+    --text: #e6edf3; --text-muted: #8b949e;
+    --accent: #2f81f7; --accent-hover: #4493f8;
+    --success: #3fb950; --success-bg: #12261e; --warning: #d29922; --warning-bg: #2d2411;
+    --danger: #f85149; --danger-bg: #301a1f; --info-bg: #10243f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.4);
+    --wall: #151a21; --wall-top: #1b212a; --base: #0d1117;
+    --floor: #3a3128; --tile: rgba(0,0,0,.35);
+    --ceil: #11151b; --light: rgba(255,236,170,.55);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font: 15px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--bg-inset); padding: .15em .4em; border-radius: 6px; }
+
+  /* ================= 3D stage ================= */
+  .viewport { position: fixed; inset: 0; overflow: hidden; cursor: grab; touch-action: none; background: #0b0e13; }
+  .viewport.drag { cursor: grabbing; }
+  .scene { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+  .vignette { position: fixed; inset: 0; pointer-events: none; z-index: 5; background: radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,.32)); }
+
+  .face { position: absolute; overflow: hidden; backface-visibility: hidden; user-select: none; -webkit-user-select: none; background: var(--wall); }
+  .face input, .face textarea { user-select: text; -webkit-user-select: text; }
+  .face::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--shade, none); }
+  .wall { left: -600px; top: -350px; width: 1200px; height: 700px; padding: 34px 52px 44px; font-size: 16px; background: linear-gradient(180deg, var(--wall-top), var(--wall)); border: 1px solid var(--border); }
+  .wall::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 18px; background: var(--base); border-top: 1px solid var(--border); }
+  .floor, .ceil { left: -600px; top: -600px; width: 1200px; height: 1200px; }
+  .w-n { transform: translateZ(-600px); }
+  .w-s { transform: rotateY(180deg) translateZ(-600px); }
+  .w-w { transform: rotateY(90deg) translateZ(-600px); --shade: linear-gradient(90deg, rgba(0,0,0,.10), transparent 45%); }
+  .w-e { transform: rotateY(-90deg) translateZ(-600px); --shade: linear-gradient(270deg, rgba(0,0,0,.10), transparent 45%); }
+  .w-s { --shade: linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.06)); }
+  .floor {
+    transform: rotateX(90deg) translateZ(-350px);
+    background-color: var(--floor);
+    background-image: linear-gradient(var(--tile) 2px, transparent 2px), linear-gradient(90deg, var(--tile) 2px, transparent 2px);
+    background-size: 100px 100px;
+    display: grid; place-items: center;
+    --shade: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,.22));
+  }
+  .ceil {
+    transform: rotateX(-90deg) translateZ(-350px) rotate(180deg);
+    background:
+      radial-gradient(circle at 25% 25%, var(--light), transparent 12%),
+      radial-gradient(circle at 75% 25%, var(--light), transparent 12%),
+      radial-gradient(circle at 25% 75%, var(--light), transparent 12%),
+      radial-gradient(circle at 75% 75%, var(--light), transparent 12%),
+      var(--ceil);
+    display: grid; place-items: center;
+  }
+  .ceil h2 { margin: 0; font-size: 64px; letter-spacing: .3em; color: var(--text-muted); opacity: .5; }
+
+  .wall-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+  .wall-head h2 { margin: 0; font-size: 28px; letter-spacing: -.01em; }
+  .wall-head span { color: var(--text-muted); font-size: 14px; }
+  .lbl { margin: 18px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); font-weight: 600; }
+  .lbl:first-of-type { margin-top: 0; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .stack { display: flex; flex-direction: column; gap: 14px; }
+
+  .rug { width: 780px; padding: 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); font-size: 16px; }
+  .rug h3 { margin: 0 0 4px; font-size: 24px; }
+  .rug p { margin: 0 0 16px; color: var(--text-muted); }
+
+  /* ================= Character ================= */
+  .char, .limb, .swing, .part { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+  .cube { position: absolute; transform-style: preserve-3d; }
+  .cf { position: absolute; backface-visibility: hidden; }
+  .eye { position: absolute; width: 6px; height: 8px; border-radius: 2px; background: #1f2328; top: 52%; }
+  .eye.l { left: 27%; } .eye.r { right: 27%; }
+  .shadow { position: absolute; left: -34px; top: -34px; width: 68px; height: 68px; border-radius: 50%; background: radial-gradient(rgba(0,0,0,.4), rgba(0,0,0,0) 70%); transform: rotateX(90deg) translateZ(2px); }
+  .walk .legL .swing, .walk .armR .swing { animation: swA .56s ease-in-out infinite; }
+  .walk .legR .swing, .walk .armL .swing { animation: swB .56s ease-in-out infinite; }
+  .run .swing { animation-duration: .36s !important; }
+  @keyframes swA { 0%, 100% { transform: rotateX(-38deg); } 50% { transform: rotateX(38deg); } }
+  @keyframes swB { 0%, 100% { transform: rotateX(38deg); } 50% { transform: rotateX(-38deg); } }
+
+  /* ================= HUD ================= */
+  .hud { position: fixed; z-index: 20; }
+  .hud-top { top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #fff; background: linear-gradient(180deg, rgba(0,0,0,.55), transparent); pointer-events: none; }
+  .hud-top > * { pointer-events: auto; }
+  .brand { font-weight: 700; display: flex; align-items: center; gap: 10px; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+  .brand-mark { width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, #2f81f7, #8250df); }
+  .spacer { flex: 1; }
+  .glass { font: inherit; font-size: 13px; font-weight: 600; color: #fff; background: rgba(22,27,34,.62); border: 1px solid rgba(255,255,255,.22); border-radius: 8px; padding: 6px 12px; cursor: pointer; backdrop-filter: blur(8px); }
+  .glass:hover { background: rgba(48,54,61,.8); }
+  .glass:focus-visible { outline: 2px solid #2f81f7; outline-offset: 2px; }
+
+  .hud-bottom { left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: calc(100vw - 24px); }
+  .tele { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tele .glass small { opacity: .75; font-weight: 500; margin-left: 4px; }
+  .help { font-size: 12.5px; color: #fff; text-align: center; padding: 5px 12px; background: rgba(22,27,34,.55); border-radius: 999px; backdrop-filter: blur(6px); }
+  .near { top: 58px; left: 50%; transform: translateX(-50%); padding: 6px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #fff; background: rgba(9,105,218,.85); box-shadow: 0 4px 16px rgba(0,0,0,.3); opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .near.on { opacity: 1; }
+  .mini { right: 14px; bottom: 14px; width: 120px; height: 120px; border-radius: 12px; border: 1px solid rgba(255,255,255,.3); background: rgba(22,27,34,.6); backdrop-filter: blur(8px); overflow: hidden; }
+  .mini b { position: absolute; font-size: 11px; color: rgba(255,255,255,.7); font-weight: 600; }
+  .mini .n { top: 3px; left: 50%; transform: translateX(-50%); } .mini .s { bottom: 3px; left: 50%; transform: translateX(-50%); }
+  .mini .w { left: 5px; top: 50%; transform: translateY(-50%); } .mini .e { right: 5px; top: 50%; transform: translateY(-50%); }
+  .mini i { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #2f81f7; border: 2px solid #fff; }
+  .joy { display: none; left: 18px; bottom: 18px; width: 120px; height: 120px; border-radius: 50%; background: rgba(22,27,34,.45); border: 1px solid rgba(255,255,255,.3); touch-action: none; backdrop-filter: blur(6px); }
+  .joy i { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(255,255,255,.75); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  @media (hover: none) and (pointer: coarse) {
+    .joy { display: block; }
+    .hud-bottom { bottom: 150px; }
+    .mini { width: 96px; height: 96px; bottom: 18px; }
+    .help { display: none; }
+  }
+
+  /* ================= Components ================= */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; font-size: 14px; padding: 7px 16px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--bg-subtle); color: var(--text); transition: background .15s, transform .05s; }
+  .btn:hover { background: var(--bg-inset); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible, .input:focus-visible, .select:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.danger { color: var(--danger); } .btn.danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+  .btn.ghost { background: transparent; border-color: transparent; } .btn.ghost:hover { background: var(--bg-inset); }
+  .btn.sm { padding: 3px 10px; font-size: 12.5px; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; pointer-events: none; }
+  .spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--bg-subtle); }
+  .badge.success { color: var(--success); background: var(--success-bg); border-color: transparent; }
+  .badge.warning { color: var(--warning); background: var(--warning-bg); border-color: transparent; }
+  .badge.danger { color: var(--danger); background: var(--danger-bg); border-color: transparent; }
+  .badge.info { color: var(--accent); background: var(--info-bg); border-color: transparent; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+  .field label { font-size: 13.5px; font-weight: 600; }
+  .hint { font-size: 12.5px; color: var(--text-muted); } .hint.error { color: var(--danger); }
+  .input, .select, textarea.input { font: inherit; width: 100%; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .input::placeholder { color: var(--text-muted); }
+  .input[aria-invalid="true"] { border-color: var(--danger); }
+  textarea.input { min-height: 76px; resize: none; }
+  .check, .radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+  .check input, .radio input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch .track { width: 40px; height: 22px; border-radius: 999px; background: var(--border); position: relative; transition: background .2s; }
+  .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+  .range { width: 100%; accent-color: var(--accent); }
+
+  .card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+  .card.raised { box-shadow: var(--shadow); }
+  .card .thumb { height: 84px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 35%, var(--bg)), color-mix(in srgb, #8250df 35%, var(--bg))); }
+  .card .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .card h3 { margin: 0; font-size: 16px; }
+  .card p { margin: 0; color: var(--text-muted); font-size: 14px; }
+  .card .foot { padding: 10px 16px; border-top: 1px solid var(--border); background: var(--bg-subtle); display: flex; gap: 8px; justify-content: flex-end; }
+  .stat .num { font-size: 30px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+  .stat .delta { font-size: 13px; font-weight: 600; }
+  .up { color: var(--success); } .down { color: var(--danger); }
+
+  .alert { display: flex; gap: 12px; padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--info-bg); width: 100%; font-size: 14px; }
+  .alert strong { display: block; }
+  .alert.success { background: var(--success-bg); } .alert.success strong { color: var(--success); }
+  .alert.warning { background: var(--warning-bg); } .alert.warning strong { color: var(--warning); }
+  .alert.danger { background: var(--danger-bg); } .alert.danger strong { color: var(--danger); }
+  .alert.info strong { color: var(--accent); }
+
+  .tablist { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+  .tab { font: inherit; background: none; border: 0; padding: 9px 14px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+  .tabpanel { padding: 14px 4px 4px; color: var(--text-muted); font-size: 14px; }
+  .tabpanel[hidden] { display: none; }
+
+  .progress { width: 100%; height: 8px; border-radius: 999px; background: var(--bg-inset); overflow: hidden; }
+  .progress > i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .4s; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; border: 2px solid var(--bg); }
+  .avatars { display: flex; } .avatars .avatar + .avatar { margin-left: -10px; }
+
+  .tip { position: relative; }
+  .tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px); background: var(--text); color: var(--bg); font-size: 12px; padding: 4px 10px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; }
+  .tip:hover::after { opacity: 1; transform: translateX(-50%); }
+
+  .table-wrap { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: var(--bg-subtle); font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--bg-subtle); }
+
+  .swatches { display: grid; gap: 12px; grid-template-columns: repeat(4, 1fr); }
+  .swatch { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; font-size: 12px; background: var(--bg); }
+  .swatch i { display: block; height: 52px; }
+  .swatch span { display: block; padding: 6px 10px; font-family: var(--mono); color: var(--text-muted); }
+
+  dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); padding: 0; width: min(440px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(1,4,9,.55); }
+  dialog .m-head { padding: 18px 20px 6px; font-size: 18px; font-weight: 700; }
+  dialog .m-body { padding: 0 20px 16px; color: var(--text-muted); }
+  dialog .m-foot { padding: 12px 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--border); background: var(--bg-subtle); border-radius: 0 0 12px 12px; }
+  .toasts { position: fixed; right: 16px; top: 60px; display: flex; flex-direction: column; gap: 10px; z-index: 50; }
+  .toast { background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow); font-size: 14px; animation: pop .2s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-8px); } }
+
+  @media (prefers-reduced-motion: reduce) { .spin, .swing { animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="viewport" id="vp">
+  <div class="scene" id="scene">
+
+    <!-- 北牆：按鈕與卡片 -->
+    <section class="face wall w-n">
+      <div class="wall-head"><h2>北牆 · 按鈕與卡片</h2><span>走近一點，直接用滑鼠點點看</span></div>
+      <div class="lbl">按鈕</div>
+      <div class="row">
+        <button class="btn primary">主要</button>
+        <button class="btn">次要</button>
+        <button class="btn danger">刪除</button>
+        <button class="btn ghost">幽靈</button>
+        <button class="btn primary" id="loadBtn"><span>點我載入</span></button>
+        <button class="btn" disabled>停用</button>
+      </div>
+      <div class="lbl">標籤</div>
+      <div class="row">
+        <span class="badge">預設</span>
+        <span class="badge info"><i class="dot"></i>進行中</span>
+        <span class="badge success"><i class="dot"></i>已完成</span>
+        <span class="badge warning"><i class="dot"></i>待審核</span>
+        <span class="badge danger"><i class="dot"></i>失敗</span>
+      </div>
+      <div class="lbl">卡片</div>
+      <div class="cols3">
+        <article class="card raised">
+          <div class="thumb"></div>
+          <div class="body"><h3>專案卡片</h3><p>呈現專案、文章或內容摘要。</p></div>
+          <div class="foot"><button class="btn sm">取消</button><button class="btn sm primary">查看</button></div>
+        </article>
+        <div class="stack">
+          <article class="card stat"><div class="body"><p>本月星星數</p><div class="num">1,284</div><div class="delta up">▲ 12.5%</div></div></article>
+          <article class="card stat"><div class="body"><p>未解決 Issue</p><div class="num">37</div><div class="delta down">▼ 4.2%</div></div></article>
+        </div>
+        <article class="card"><div class="body">
+          <h3>小提示</h3>
+          <p>用 W A S D 走動，Q E 或拖曳轉動視角。到其他牆面看看更多元件。</p>
+        </div></article>
+      </div>
+    </section>
+
+    <!-- 西牆：表單 -->
+    <section class="face wall w-w">
+      <div class="wall-head"><h2>西牆 · 表單</h2><span>輸入框、選單、開關與滑桿</span></div>
+      <div class="cols">
+        <div class="stack">
+          <div class="field"><label for="f-name">名稱</label><input class="input" id="f-name" placeholder="輸入專案名稱"><span class="hint">僅限英文、數字與連字號。</span></div>
+          <div class="field"><label for="f-mail">電子郵件</label><input class="input" id="f-mail" type="email" value="not-an-email" aria-invalid="true"><span class="hint error">請輸入有效的電子郵件。</span></div>
+          <div class="field"><label for="f-sel">授權條款</label><select class="select" id="f-sel"><option>MIT</option><option>Apache-2.0</option><option>GPL-3.0</option></select></div>
+          <div class="field"><label for="f-desc">描述</label><textarea class="input" id="f-desc" placeholder="簡單介紹這個專案…"></textarea></div>
+        </div>
+        <div class="stack">
+          <div class="lbl" style="margin:0">選項</div>
+          <div class="row"><label class="check"><input type="checkbox" checked> 公開儲存庫</label><label class="check"><input type="checkbox"> 加入 README</label></div>
+          <div class="row"><label class="radio"><input type="radio" name="r" checked> 個人</label><label class="radio"><input type="radio" name="r"> 組織</label></div>
+          <label class="switch"><input type="checkbox" checked><span class="track"></span> 啟用通知</label>
+          <div class="field"><label for="f-range">音量：<output id="rangeOut">40</output></label><input class="range" id="f-range" type="range" min="0" max="100" value="40"></div>
+          <div class="alert info"><span>ℹ️</span><div><strong>提醒</strong>在輸入框打字時，角色不會移動。</div></div>
+          <div class="row"><button class="btn primary">建立儲存庫</button><button class="btn">取消</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 東牆：資料 -->
+    <section class="face wall w-e">
+      <div class="wall-head"><h2>東牆 · 資料</h2><span>表格、進度條與頭像</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>專案</th><th>狀態</th><th>語言</th><th>星星</th></tr></thead>
+          <tbody>
+            <tr><td>ui-space</td><td><span class="badge success"><i class="dot"></i>活躍</span></td><td>HTML</td><td>128</td></tr>
+            <tr><td>design-tokens</td><td><span class="badge warning"><i class="dot"></i>維護中</span></td><td>CSS</td><td>64</td></tr>
+            <tr><td>icon-kit</td><td><span class="badge"><i class="dot"></i>封存</span></td><td>SVG</td><td>23</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="lbl">統計</div>
+      <div class="cols3">
+        <article class="card stat"><div class="body"><p>拜訪人次</p><div class="num">8,920</div><div class="delta up">▲ 8.1%</div></div></article>
+        <article class="card stat"><div class="body"><p>Fork 數</p><div class="num">214</div><div class="delta up">▲ 3.4%</div></div></article>
+        <article class="card stat"><div class="body"><p>錯誤率</p><div class="num">0.8%</div><div class="delta down">▼ 0.2%</div></div></article>
+      </div>
+      <div class="lbl">進度與成員</div>
+      <div class="row" style="gap:24px">
+        <div class="field" style="flex:1;min-width:280px"><label>上傳進度 <span id="pgText" class="hint">65%</span></label><div class="progress" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"><i id="pg" style="width:65%"></i></div></div>
+        <button class="btn sm" id="pgBtn">增加進度</button>
+        <div class="avatars"><span class="avatar" style="background:#0969da">A</span><span class="avatar" style="background:#8250df">B</span><span class="avatar" style="background:#1a7f37">C</span><span class="avatar" style="background:#656d76">+4</span></div>
+      </div>
+    </section>
+
+    <!-- 南牆：回饋 -->
+    <section class="face wall w-s">
+      <div class="wall-head"><h2>南牆 · 回饋</h2><span>提示、分頁、對話框與通知</span></div>
+      <div class="cols">
+        <div class="stack" style="gap:10px">
+          <div class="alert info"><span>ℹ️</span><div><strong>資訊</strong>新版本將於下週發布。</div></div>
+          <div class="alert success"><span>✅</span><div><strong>成功</strong>變更已儲存。</div></div>
+          <div class="alert warning"><span>⚠️</span><div><strong>注意</strong>此操作可能影響其他成員。</div></div>
+          <div class="alert danger"><span>⛔</span><div><strong>錯誤</strong>無法連線到伺服器。</div></div>
+        </div>
+        <div class="stack">
+          <div id="tabs">
+            <div class="tablist" role="tablist">
+              <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t1">概覽</button>
+              <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2" tabindex="-1">活動</button>
+              <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3" tabindex="-1">設定</button>
+            </div>
+            <div class="tabpanel" role="tabpanel" id="p1" aria-labelledby="t1">這裡是專案概覽內容。</div>
+            <div class="tabpanel" role="tabpanel" id="p2" aria-labelledby="t2" hidden>這裡是最近活動紀錄。</div>
+            <div class="tabpanel" role="tabpanel" id="p3" aria-labelledby="t3" hidden>這裡是專案設定選項。</div>
+          </div>
+          <div class="row">
+            <button class="btn primary" id="openModal">開啟對話框</button>
+            <button class="btn" id="toastBtn">顯示通知</button>
+            <button class="btn tip" data-tip="這是提示氣泡">提示氣泡</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 地板：色彩 -->
+    <section class="face floor">
+      <div class="rug">
+        <h3>色彩地毯</h3>
+        <p>所有顏色都以 CSS 變數定義，換主題時會一起更新。</p>
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </section>
+
+    <!-- 天花板 -->
+    <section class="face ceil"><h2>UI SPACE</h2></section>
+
+    <!-- 角色 -->
+    <div class="char" id="char"></div>
+  </div>
+</div>
+<div class="vignette"></div>
+
+<header class="hud hud-top">
+  <div class="brand"><span class="brand-mark"></span> UI 3D 房間</div>
+  <div class="spacer"></div>
+  <button class="glass" id="resetBtn" title="重置視角 (R)">重置視角</button>
+  <button class="glass" id="themeBtn" aria-label="切換淺色／深色主題">🌓 主題</button>
+</header>
+
+<div class="hud near" id="near"></div>
+
+<div class="hud hud-bottom">
+  <div class="tele" id="tele">
+    <button class="glass" data-t="n">北牆<small>1</small></button>
+    <button class="glass" data-t="w">西牆<small>2</small></button>
+    <button class="glass" data-t="e">東牆<small>3</small></button>
+    <button class="glass" data-t="s">南牆<small>4</small></button>
+  </div>
+  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前</div>
+</div>
+
+<div class="hud mini" id="mini" aria-hidden="true"><b class="n">北</b><b class="s">南</b><b class="w">西</b><b class="e">東</b><i id="miniDot"></i></div>
+<div class="hud joy" id="joy" aria-label="虛擬搖桿"><i id="knob"></i></div>
+
+<dialog id="modal">
+  <div class="m-head">確認刪除？</div>
+  <div class="m-body">此動作無法復原，請確認是否繼續。</div>
+  <form method="dialog" class="m-foot">
+    <button class="btn" value="cancel">取消</button>
+    <button class="btn danger" value="ok">刪除</button>
+  </form>
+</dialog>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+  var vp = $("vp"), scene = $("scene"), charEl = $("char");
+  var FLOOR = 350, LIM = 552, TARGET_Y = FLOOR - 110;
+  var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+
+  /* ---------- 角色（用 CSS 方塊組成） ---------- */
+  function mkFace(fw, fh, cw, ch, tf, col, shade) {
+    var f = document.createElement("div");
+    f.className = "cf";
+    f.style.cssText = "width:" + fw + "px;height:" + fh + "px;left:" + ((cw - fw) / 2) + "px;top:" + ((ch - fh) / 2) + "px;" +
+      "background:" + col + ";transform:" + tf + ";box-shadow:inset 0 0 0 999px " + shade;
+    return f;
+  }
+  function cube(w, h, d, col) {
+    var c = document.createElement("div");
+    c.className = "cube";
+    c.style.cssText = "left:" + (-w / 2) + "px;top:0;width:" + w + "px;height:" + h + "px";
+    var front = mkFace(w, h, w, h, "translateZ(" + d / 2 + "px)", col, "rgba(0,0,0,0)");
+    c.appendChild(front);
+    c.appendChild(mkFace(w, h, w, h, "rotateY(180deg) translateZ(" + d / 2 + "px)", col, "rgba(0,0,0,.3)"));
+    c.appendChild(mkFace(d, h, w, h, "rotateY(90deg) translateZ(" + w / 2 + "px)", col, "rgba(0,0,0,.15)"));
+    c.appendChild(mkFace(d, h, w, h, "rotateY(-90deg) translateZ(" + w / 2 + "px)", col, "rgba(0,0,0,.22)"));
+    c.appendChild(mkFace(w, d, w, h, "rotateX(90deg) translateZ(" + h / 2 + "px)", col, "rgba(255,255,255,.18)"));
+    c.appendChild(mkFace(w, d, w, h, "rotateX(-90deg) translateZ(" + h / 2 + "px)", col, "rgba(0,0,0,.4)"));
+    c.front = front;
+    return c;
+  }
+  function part(x, y, el) {
+    var p = document.createElement("div");
+    p.className = "part";
+    p.style.transform = "translate3d(" + x + "px," + y + "px,0)";
+    p.appendChild(el);
+    return p;
+  }
+  function limb(x, y, cls, w, h, d, col) {
+    var l = document.createElement("div");
+    l.className = "limb " + cls;
+    l.style.transform = "translate3d(" + x + "px," + y + "px,0)";
+    var s = document.createElement("div");
+    s.className = "swing";
+    s.appendChild(cube(w, h, d, col));
+    l.appendChild(s);
+    return l;
+  }
+  (function buildCharacter() {
+    var skin = "#f2c9a0", shirt = "#2f81f7", pants = "#30363d", hair = "#3b2a20";
+    var shadow = document.createElement("div"); shadow.className = "shadow"; charEl.appendChild(shadow);
+    charEl.appendChild(limb(-13, -60, "legL", 22, 60, 24, pants));
+    charEl.appendChild(limb(13, -60, "legR", 22, 60, 24, pants));
+    charEl.appendChild(part(0, -124, cube(54, 64, 30, shirt)));
+    charEl.appendChild(limb(-36, -121, "armL", 16, 58, 18, shirt));
+    charEl.appendChild(limb(36, -121, "armR", 16, 58, 18, shirt));
+    var head = cube(42, 42, 42, skin);
+    ["l", "r"].forEach(function (s) { var e = document.createElement("i"); e.className = "eye " + s; head.front.appendChild(e); });
+    charEl.appendChild(part(0, -166, head));
+    charEl.appendChild(part(0, -171, cube(46, 14, 46, hair)));
+  })();
+
+  /* ---------- 狀態 ---------- */
+  var S = { x: 0, z: 140, h: 180 };                       // 角色位置與朝向（度）
+  var C = { x: 0, z: 140, yaw: 0, pitch: 22, D: 430 };    // 相機
+  var K = {}, J = { x: 0, y: 0 };
+
+  function persp() {
+    var vw = innerWidth, vh = innerHeight;
+    var b = vw < 700 ? vw * 1.1 : Math.min(vw * 0.55, vh);
+    return Math.max(300, b);
+  }
+  function render() {
+    var p = persp();
+    vp.style.perspective = p + "px";
+    scene.style.transform = "translateZ(" + (p - C.D) + "px) rotateX(" + (-C.pitch) + "deg) rotateY(" + C.yaw + "deg) translate3d(" + (-C.x) + "px," + (-TARGET_Y) + "px," + (-C.z) + "px)";
+    charEl.style.transform = "translate3d(" + S.x + "px," + FLOOR + "px," + S.z + "px) rotateY(" + S.h + "deg)";
+  }
+
+  /* ---------- 輸入：鍵盤 ---------- */
+  var typing = function (t) { return t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable); };
+  var TELE = { n: [0, -360, 0, 180], w: [-360, 0, -90, 90 * -1], e: [360, 0, 90, 90], s: [0, 360, 180, 0] };
+  function teleport(k) {
+    var t = TELE[k]; if (!t) return;
+    S.x = t[0]; S.z = t[1]; S.h = t[3];
+    C.x = S.x; C.z = S.z; C.yaw = t[2]; C.pitch = 14; C.D = 470;
+  }
+  function resetCam() { C.yaw = 0; C.pitch = 22; C.D = 430; }
+  var MOVE = { w: 1, a: 1, s: 1, d: 1, q: 1, e: 1, shift: 1, arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1 };
+  addEventListener("keydown", function (e) {
+    if (typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key.toLowerCase();
+    if (MOVE[k]) { K[k] = true; if (k.indexOf("arrow") === 0) e.preventDefault(); }
+    else if (k === "r") resetCam();
+    else if (k === "1") teleport("n");
+    else if (k === "2") teleport("w");
+    else if (k === "3") teleport("e");
+    else if (k === "4") teleport("s");
+  });
+  addEventListener("keyup", function (e) { K[e.key.toLowerCase()] = false; });
+  addEventListener("blur", function () { K = {}; });
+
+  /* ---------- 輸入：拖曳轉視角／雙指縮放／滾輪 ---------- */
+  var INTERACTIVE = "button,input,select,textarea,label,a,output,[role=tab]";
+  var ptrs = new Map(), pinch0 = 0, D0 = 430;
+  var dist = function (a, b) { return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+  vp.addEventListener("pointerdown", function (e) {
+    if (e.target.closest(INTERACTIVE)) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { vp.setPointerCapture(e.pointerId); } catch (_) {}
+    vp.classList.add("drag");
+    if (ptrs.size === 2) { var a = Array.from(ptrs.values()); pinch0 = dist(a[0], a[1]); D0 = C.D; }
+  });
+  vp.addEventListener("pointermove", function (e) {
+    var o = ptrs.get(e.pointerId); if (!o) return;
+    var dx = e.clientX - o.x, dy = e.clientY - o.y;
+    o.x = e.clientX; o.y = e.clientY;
+    if (ptrs.size === 1) {
+      C.yaw -= dx * 0.28;
+      C.pitch = clamp(C.pitch + dy * 0.2, 5, 75);
+    } else if (ptrs.size === 2) {
+      var a = Array.from(ptrs.values());
+      C.D = clamp(D0 * pinch0 / dist(a[0], a[1]), 220, 1000);
+    }
+  });
+  function endPtr(e) { ptrs.delete(e.pointerId); if (!ptrs.size) vp.classList.remove("drag"); }
+  vp.addEventListener("pointerup", endPtr);
+  vp.addEventListener("pointercancel", endPtr);
+  vp.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    C.D = clamp(C.D * Math.exp(e.deltaY * 0.001), 220, 1000);
+  }, { passive: false });
+
+  /* ---------- 輸入：虛擬搖桿（觸控） ---------- */
+  var joy = $("joy"), knob = $("knob"), joyId = null;
+  function joyMove(e) {
+    var r = joy.getBoundingClientRect();
+    var dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    var m = Math.hypot(dx, dy), max = 44;
+    if (m > max) { dx = dx / m * max; dy = dy / m * max; }
+    J.x = dx / max; J.y = dy / max;
+    knob.style.transform = "translate(" + dx + "px," + dy + "px)";
+  }
+  joy.addEventListener("pointerdown", function (e) { joyId = e.pointerId; joy.setPointerCapture(joyId); joyMove(e); });
+  joy.addEventListener("pointermove", function (e) { if (e.pointerId === joyId) joyMove(e); });
+  function joyEnd(e) { if (e.pointerId !== joyId) return; joyId = null; J.x = 0; J.y = 0; knob.style.transform = ""; }
+  joy.addEventListener("pointerup", joyEnd);
+  joy.addEventListener("pointercancel", joyEnd);
+
+  /* ---------- 主迴圈 ---------- */
+  var near = $("near"), mini = $("mini"), dot = $("miniDot");
+  var WALLS = [
+    { name: "北牆 · 按鈕與卡片", d: function () { return S.z + 600; } },
+    { name: "西牆 · 表單", d: function () { return S.x + 600; } },
+    { name: "東牆 · 資料", d: function () { return 600 - S.x; } },
+    { name: "南牆 · 回饋", d: function () { return 600 - S.z; } }
+  ];
+  var lastNear = "", last = performance.now();
+  function loop(t) {
+    var dt = Math.min(0.05, (t - last) / 1000); last = t;
+
+    if (K.q) C.yaw -= 120 * dt;
+    if (K.e) C.yaw += 120 * dt;
+
+    var ix = ((K.d || K.arrowright) ? 1 : 0) - ((K.a || K.arrowleft) ? 1 : 0) + J.x;
+    var iy = ((K.w || K.arrowup) ? 1 : 0) - ((K.s || K.arrowdown) ? 1 : 0) - J.y;
+    var len = Math.hypot(ix, iy);
+    if (len > 1) { ix /= len; iy /= len; len = 1; }
+    var moving = len > 0.1;
+    var run = !!K.shift;
+
+    if (moving) {
+      var yr = C.yaw * Math.PI / 180, sp = run ? 460 : 280;
+      var dx = Math.sin(yr) * iy + Math.cos(yr) * ix;
+      var dz = -Math.cos(yr) * iy + Math.sin(yr) * ix;
+      S.x = clamp(S.x + dx * sp * dt, -LIM, LIM);
+      S.z = clamp(S.z + dz * sp * dt, -LIM, LIM);
+      var th = Math.atan2(dx, dz) * 180 / Math.PI;
+      var d = ((th - S.h) % 360 + 540) % 360 - 180;
+      S.h += d * (1 - Math.exp(-dt * 14));
+    }
+    charEl.classList.toggle("walk", moving);
+    charEl.classList.toggle("run", moving && run);
+
+    var a = 1 - Math.exp(-dt * 12);
+    C.x += (S.x - C.x) * a;
+    C.z += (S.z - C.z) * a;
+    render();
+
+    // 靠近牆面提示
+    var best = null, bd = 170;
+    WALLS.forEach(function (w) { var v = w.d(); if (v < bd) { bd = v; best = w; } });
+    var txt = best ? "靠近 " + best.name : "";
+    if (txt !== lastNear) { lastNear = txt; near.textContent = txt; near.classList.toggle("on", !!txt); }
+
+    // 小地圖
+    dot.style.left = ((S.x + 600) / 1200 * 100) + "%";
+    dot.style.top = ((S.z + 600) / 1200 * 100) + "%";
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  if (innerWidth < 700) C.D = 330;
+
+  $("tele").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-t]"); if (b) teleport(b.getAttribute("data-t"));
+  });
+  $("resetBtn").addEventListener("click", resetCam);
+
+  /* ---------- 主題與色彩地毯 ---------- */
+  function renderSwatches() {
+    var names = ["--accent", "--success", "--warning", "--danger", "--bg-subtle", "--border", "--text", "--text-muted"];
+    var cs = getComputedStyle(root);
+    $("swatches").innerHTML = names.map(function (n) {
+      return '<div class="swatch"><i style="background:var(' + n + ')"></i><span>' + n + '<br>' + cs.getPropertyValue(n).trim() + '</span></div>';
+    }).join("");
+  }
+  try { var saved = localStorage.getItem("theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  $("themeBtn").addEventListener("click", function () {
+    var isDark = root.getAttribute("data-theme") === "dark" ||
+      (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+    var next = isDark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    renderSwatches();
+  });
+  renderSwatches();
+
+  /* ---------- 牆上元件互動 ---------- */
+  function toast(msg) {
+    var t = document.createElement("div");
+    t.className = "toast"; t.textContent = msg;
+    $("toasts").appendChild(t);
+    setTimeout(function () { t.remove(); }, 2600);
+  }
+  $("toastBtn").addEventListener("click", function () { toast("✅ 已儲存變更"); });
+
+  var modal = $("modal");
+  $("openModal").addEventListener("click", function () { K = {}; modal.showModal(); });
+  modal.addEventListener("close", function () { if (modal.returnValue === "ok") toast("🗑️ 已刪除"); });
+
+  var lb = $("loadBtn");
+  lb.addEventListener("click", function () {
+    lb.disabled = true;
+    lb.innerHTML = '<i class="spin"></i><span>載入中…</span>';
+    setTimeout(function () { lb.disabled = false; lb.innerHTML = "<span>點我載入</span>"; toast("載入完成"); }, 1600);
+  });
+
+  var rg = $("f-range");
+  rg.addEventListener("input", function () { $("rangeOut").textContent = rg.value; });
+
+  var pv = 65;
+  $("pgBtn").addEventListener("click", function () {
+    pv = pv >= 100 ? 0 : Math.min(100, pv + 15);
+    $("pg").style.width = pv + "%";
+    $("pgText").textContent = pv + "%";
+    document.querySelector(".progress").setAttribute("aria-valuenow", pv);
+  });
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll("#tabs .tab"));
+  function selectTab(i) {
+    tabs.forEach(function (t, j) {
+      var on = i === j;
+      t.setAttribute("aria-selected", on);
+      t.tabIndex = on ? 0 : -1;
+      $(t.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t, i) { t.addEventListener("click", function () { selectTab(i); }); });
+})();
+</script>
+</body>
+</html>
