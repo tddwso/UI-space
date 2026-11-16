@@ -74,24 +74,17 @@
     background-size: 100% 62%, 100% 100%; background-position: top, top; background-repeat: no-repeat; }
   .wall::before { content: ""; position: absolute; inset: 0; background: var(--dim); pointer-events: none; }
 
-  /* ================= 牆面裝飾 ================= */
-  .deco { position: absolute; display: block; font-style: normal; }
-  .frame { background: #fffdf8; padding: 7px; border: 5px solid #2b1d14; box-shadow: 0 6px 14px rgba(0,0,0,.4); }
-  .frame > i { display: block; width: 100%; height: 100%; background-size: cover; background-position: center; }
-  .poster { background: linear-gradient(160deg, #7a4dff, #ff6a3d 55%, #ffcf3d); border: 4px solid #2b1d14; color: #fff; font: italic 800 30px/1.1 "Brush Script MT", "Segoe Script", cursive, sans-serif; display: grid; place-items: center; text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.45); box-shadow: 0 6px 14px rgba(0,0,0,.35); }
-  .banner { background: #1a0707; color: #ff3b30; border: 2px solid #3a1010; font: 800 17px/1.2 sans-serif; letter-spacing: .1em; text-align: center; display: grid; place-items: center; text-shadow: 0 0 8px rgba(255,60,50,.85); box-shadow: 0 4px 10px rgba(0,0,0,.4); }
-  .cork { background: radial-gradient(rgba(120,80,40,.4) 1px, transparent 1.6px) 0 0 / 8px 8px, #c99a62; border: 8px solid #6d4322; box-shadow: 0 6px 14px rgba(0,0,0,.4); }
-  .cork b { position: absolute; width: 34px; height: 42px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
-  .cork b::before { content: ""; position: absolute; left: 50%; top: -3px; width: 7px; height: 7px; margin-left: -3px; border-radius: 50%; background: #d32f2f; }
-  .chart { background: repeating-linear-gradient(0deg, transparent 0 21px, rgba(40,70,170,.28) 21px 22px), repeating-linear-gradient(90deg, transparent 0 46px, rgba(40,70,170,.22) 46px 47px), #fbfbf8; border: 1px solid #cfcfc8; font: 14px/22px "Kaiti TC", "DFKai-SB", "KaiTi", "Comic Sans MS", cursive; color: #1c3fa8; padding: 6px 10px; box-shadow: 0 4px 10px rgba(0,0,0,.35); overflow: hidden; white-space: nowrap; }
-  .lamp { width: 190px; height: 34px; border-radius: 8px; background: linear-gradient(#fffdf2, #efe9d0); border: 5px solid #e8dcb0; box-shadow: 0 0 34px 10px rgba(255,248,210,.55); }
-  .win { background: linear-gradient(180deg, #bfe3ff, #e9f6ff 60%, #fff); border: 10px solid #efe9d8; box-shadow: inset 0 0 40px rgba(255,255,255,.8), 0 0 40px 6px rgba(255,244,200,.45); }
-  .win::after { content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: 45%; background: repeating-linear-gradient(180deg, rgba(240,236,224,.96) 0 12px, rgba(180,190,200,.55) 12px 14px); }
-  .clock { border-radius: 50%; background: #f7f7f2; border: 6px solid #3b3b3b; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
-  .clock::before, .clock::after { content: ""; position: absolute; left: 50%; width: 3px; background: #222; transform-origin: 50% 100%; border-radius: 2px; }
-  .clock::before { top: 12%; height: 38%; transform: rotate(32deg); }
-  .clock::after { top: 24%; height: 26%; transform: rotate(-72deg); }
-  .note { width: 34px; height: 34px; box-shadow: 0 2px 5px rgba(0,0,0,.35); }
+  /* ================= 東牆時鐘 ================= */
+  .aclock { position: absolute; left: 430px; top: 60px; width: 340px; height: 340px; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #fffef9, #efe9d8); border: 12px solid #2b1d14; box-shadow: 0 10px 28px rgba(0,0,0,.45), inset 0 0 18px rgba(0,0,0,.14); }
+  .aclock .tk { position: absolute; left: 50%; top: 0; width: 2px; height: 50%; margin-left: -1px; transform-origin: 50% 100%; background: linear-gradient(#444 0 4%, transparent 4%); }
+  .aclock .tk.big { width: 5px; margin-left: -2.5px; background: linear-gradient(#222 0 8%, transparent 8%); }
+  .aclock .num { position: absolute; transform: translate(-50%, -50%); font: 700 28px/1 Georgia, "Times New Roman", serif; color: #2b1d14; }
+  .aclock .hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; border-radius: 6px; }
+  .aclock .hH { width: 12px; height: 24%; margin-left: -6px; background: #222; }
+  .aclock .hM { width: 8px; height: 35%; margin-left: -4px; background: #222; }
+  .aclock .hS { width: 3px; height: 41%; margin-left: -1.5px; background: #d32f2f; }
+  .aclock .hS::after { content: ""; position: absolute; left: 0; top: 100%; width: 3px; height: 14%; background: #d32f2f; }
+  .aclock .pin { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #d32f2f; border: 3px solid #222; }
   .floor, .ceil { left: -600px; top: -600px; width: 1200px; height: 1200px; }
   .w-n { transform: translateZ(-600px); }
   .w-s { transform: rotateY(180deg) translateZ(-600px); }
@@ -272,35 +265,20 @@
   <div class="scene" id="scene">
 
     <!-- 北牆：按鈕與卡片 -->
-    <section class="face wall w-n">
-      <i class="deco poster" style="left:34px;top:70px;width:148px;height:196px">Welcome 2</i>
-      <i class="deco banner" style="left:18px;top:292px;width:180px;height:50px">2016 NBA<br>CHAMPIONS</i>
-      <i class="deco frame" style="left:1008px;top:70px;width:180px;height:138px"><i style="background-image:url(room-1.jpg)"></i></i>
-      <i class="deco note" style="left:1022px;top:240px;background:#f7e66b;transform:rotate(-6deg)"></i>
-      <i class="deco note" style="left:1070px;top:250px;background:#9ae6b4;transform:rotate(5deg)"></i>
-      <i class="deco note" style="left:1118px;top:238px;background:#f6a5a5;transform:rotate(-3deg)"></i>
-      </section>
+    <section class="face wall w-n"></section>
 
     <!-- 西牆：表單 -->
-    <section class="face wall w-w">
-      <i class="deco lamp" style="left:14px;top:40px"></i>
-      <i class="deco frame" style="left:1008px;top:70px;width:180px;height:138px"><i style="background-image:url(room-2.jpg)"></i></i>
-      <i class="deco cork" style="left:1010px;top:240px;width:176px;height:130px"><b style="left:12px;top:14px;background:linear-gradient(135deg,#4aa3df 50%,#f7d154 50%);transform:rotate(-6deg)"></b><b style="left:62px;top:22px;background:#fff7c2;transform:rotate(4deg)"></b><b style="left:108px;top:10px;background:linear-gradient(135deg,#8bc34a 50%,#fff 50%);transform:rotate(-3deg)"></b><b style="left:40px;top:62px;background:#f6a5a5;transform:rotate(5deg)"></b><b style="left:96px;top:60px;background:linear-gradient(135deg,#ba68c8 50%,#ffe082 50%);transform:rotate(-5deg)"></b></i>
-      </section>
+    <section class="face wall w-w"></section>
 
     <!-- 東牆：資料 -->
     <section class="face wall w-e">
-      <i class="deco cork" style="left:20px;top:70px;width:190px;height:150px"><b style="left:14px;top:14px;background:linear-gradient(135deg,#4aa3df 50%,#f7d154 50%);transform:rotate(-6deg)"></b><b style="left:64px;top:26px;background:#fff;transform:rotate(4deg)"></b><b style="left:112px;top:12px;background:linear-gradient(135deg,#ef5350 50%,#fff 50%);transform:rotate(-4deg)"></b><b style="left:30px;top:78px;background:#c5e1a5;transform:rotate(6deg)"></b><b style="left:84px;top:80px;background:linear-gradient(135deg,#7e57c2 50%,#ffe082 50%);transform:rotate(-5deg)"></b><b style="left:132px;top:84px;background:#ffcc80;transform:rotate(3deg)"></b></i>
-      <i class="deco clock" style="left:1070px;top:70px;width:100px;height:100px"></i>
-      <i class="deco frame" style="left:1008px;top:210px;width:180px;height:138px"><i style="background-image:url(room-2.jpg)"></i></i>
-      </section>
+      <div class="aclock" id="clock">
+        <i class="hand hH" id="hH"></i><i class="hand hM" id="hM"></i><i class="hand hS" id="hS"></i><i class="pin"></i>
+      </div>
+    </section>
 
     <!-- 南牆：回饋 -->
-    <section class="face wall w-s">
-      <i class="deco win" style="left:20px;top:50px;width:170px;height:270px"></i>
-      <i class="deco frame" style="left:1008px;top:70px;width:180px;height:138px"><i style="background-image:url(room-1.jpg)"></i></i>
-      <i class="deco banner" style="left:1012px;top:240px;width:172px;height:46px">WELCOME<br>歡迎光臨</i>
-      </section>
+    <section class="face wall w-s"></section>
 
     <!-- 地板：色彩 -->
     <section class="face floor"></section>
@@ -588,6 +566,7 @@
   var lastNear = "", last = performance.now();
   function loop(t) {
     var dt = Math.min(0.05, (t - last) / 1000); last = t;
+    if (t - lastClock > 50) { lastClock = t; tickClock(); }
 
     if (K.q) C.yaw -= 120 * dt;
     if (K.e) C.yaw += 120 * dt;
@@ -647,6 +626,28 @@
     root.setAttribute("data-theme", next);
     try { localStorage.setItem("theme", next); } catch (e) {}
   });
+
+  /* ---------- 東牆時鐘 ---------- */
+  var clk = $("clock"), hH = $("hH"), hM = $("hM"), hS = $("hS"), lastClock = 0;
+  (function buildClock() {
+    var html = "";
+    for (var i = 0; i < 60; i++) html += '<i class="tk' + (i % 5 === 0 ? " big" : "") + '" style="transform:rotate(' + (i * 6) + 'deg)"></i>';
+    for (var n = 1; n <= 12; n++) {
+      var a = n * 30 * Math.PI / 180;
+      html += '<b class="num" style="left:' + (50 + 37 * Math.sin(a)) + '%;top:' + (50 - 37 * Math.cos(a)) + '%">' + n + "</b>";
+    }
+    clk.insertAdjacentHTML("afterbegin", html);
+  })();
+  function tickClock() {
+    var d = new Date();
+    var s = d.getSeconds() + d.getMilliseconds() / 1000;
+    var m = d.getMinutes() + s / 60;
+    var hr = (d.getHours() % 12) + m / 60;
+    hS.style.transform = "rotate(" + (s * 6) + "deg)";
+    hM.style.transform = "rotate(" + (m * 6) + "deg)";
+    hH.style.transform = "rotate(" + (hr * 30) + "deg)";
+  }
+  tickClock();
 })();
 </script>
 </body>
