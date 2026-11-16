@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI 元件空間</title>
+<meta name="description" content="簡潔現代的 UI 元件展示頁，支援淺色／深色自動切換，可直接用 GitHub Pages 發布。">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-subtle: #f6f8fa;
+    --bg-inset: #eef1f4;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-muted: #656d76;
+    --accent: #0969da;
+    --accent-hover: #0757ba;
+    --accent-text: #ffffff;
+    --success: #1a7f37;
+    --success-bg: #dafbe1;
+    --warning: #9a6700;
+    --warning-bg: #fff8c5;
+    --danger: #cf222e;
+    --danger-bg: #ffebe9;
+    --info-bg: #ddf4ff;
+    --shadow: 0 1px 2px rgba(31,35,40,.06), 0 4px 16px rgba(31,35,40,.06);
+    --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1117;
+      --bg-subtle: #161b22;
+      --bg-inset: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #2f81f7;
+      --accent-hover: #4493f8;
+      --accent-text: #ffffff;
+      --success: #3fb950;
+      --success-bg: #12261e;
+      --warning: #d29922;
+      --warning-bg: #2d2411;
+      --danger: #f85149;
+      --danger-bg: #301a1f;
+      --info-bg: #10243f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1117;
+    --bg-subtle: #161b22;
+    --bg-inset: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #2f81f7;
+    --accent-hover: #4493f8;
+    --accent-text: #ffffff;
+    --success: #3fb950;
+    --success-bg: #12261e;
+    --warning: #d29922;
+    --warning-bg: #2d2411;
+    --danger: #f85149;
+    --danger-bg: #301a1f;
+    --info-bg: #10243f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--mono); font-size: .88em; background: var(--bg-inset); padding: .15em .4em; border-radius: 6px; }
+
+  /* ---------- Layout ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 24px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { font-weight: 700; letter-spacing: .2px; display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), #8250df); }
+  .spacer { flex: 1; }
+
+  .shell { display: grid; grid-template-columns: 220px minmax(0,1fr); max-width: 1180px; margin: 0 auto; }
+  nav.side {
+    position: sticky; top: 62px; align-self: start;
+    padding: 24px 16px 24px 24px; height: calc(100vh - 62px); overflow: auto;
+  }
+  nav.side h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); }
+  nav.side a { display: block; padding: 6px 10px; border-radius: 6px; color: var(--text); font-size: 14px; }
+  nav.side a:hover { background: var(--bg-subtle); text-decoration: none; }
+  nav.side a.active { background: var(--bg-inset); font-weight: 600; }
+  main { padding: 32px 24px 96px; min-width: 0; }
+
+  .hero { padding: 8px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .hero h1 { margin: 0 0 8px; font-size: 34px; line-height: 1.2; letter-spacing: -.01em; }
+  .hero p { margin: 0; color: var(--text-muted); max-width: 60ch; }
+
+  section { padding: 36px 0 8px; scroll-margin-top: 76px; }
+  section > h2 { margin: 0 0 4px; font-size: 22px; }
+  section > p.lead { margin: 0 0 16px; color: var(--text-muted); }
+  .demo {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg); padding: 24px;
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+  }
+  .demo.col { flex-direction: column; align-items: stretch; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); width: 100%; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font: inherit; font-weight: 600; font-size: 14px;
+    padding: 7px 16px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--bg-subtle); color: var(--text);
+    transition: background .15s, border-color .15s, transform .05s;
+  }
+  .btn:hover { background: var(--bg-inset); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible, .input:focus-visible, .select:focus-visible, .tab:focus-visible, .switch input:focus-visible + .track {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+  .btn.ghost { background: transparent; border-color: transparent; }
+  .btn.ghost:hover { background: var(--bg-inset); }
+  .btn.sm { padding: 3px 10px; font-size: 12.5px; }
+  .btn.lg { padding: 10px 22px; font-size: 16px; }
+  .btn[disabled] { opacity: .5; cursor: not-allowed; pointer-events: none; }
+  .btn .spin { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Badges ---------- */
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--bg-subtle); }
+  .badge.success { color: var(--success); background: var(--success-bg); border-color: transparent; }
+  .badge.warning { color: var(--warning); background: var(--warning-bg); border-color: transparent; }
+  .badge.danger  { color: var(--danger);  background: var(--danger-bg);  border-color: transparent; }
+  .badge.info    { color: var(--accent);  background: var(--info-bg);    border-color: transparent; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  /* ---------- Form ---------- */
+  .field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+  .field label { font-size: 13.5px; font-weight: 600; }
+  .hint { font-size: 12.5px; color: var(--text-muted); }
+  .hint.error { color: var(--danger); }
+  .input, .select, textarea.input {
+    font: inherit; width: 100%; padding: 7px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .input::placeholder { color: var(--text-muted); }
+  .input[aria-invalid="true"] { border-color: var(--danger); }
+  textarea.input { min-height: 84px; resize: vertical; }
+
+  .check, .radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+  .check input, .radio input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+  .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch .track { width: 40px; height: 22px; border-radius: 999px; background: var(--border); position: relative; transition: background .2s; }
+  .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(18px); }
+
+  .range { width: 100%; accent-color: var(--accent); }
+
+  /* ---------- Card ---------- */
+  .card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+  .card.raised { box-shadow: var(--shadow); }
+  .card .thumb { height: 110px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 35%, var(--bg)), color-mix(in srgb, #8250df 35%, var(--bg))); }
+  .card .body { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .card h3 { margin: 0; font-size: 16px; }
+  .card p { margin: 0; color: var(--text-muted); font-size: 14px; }
+  .card .foot { padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-subtle); display: flex; gap: 8px; justify-content: flex-end; }
+  .stat .num { font-size: 28px; font-weight: 700; letter-spacing: -.01em; }
+  .stat .delta { font-size: 13px; font-weight: 600; }
+  .up { color: var(--success); } .down { color: var(--danger); }
+
+  /* ---------- Alerts ---------- */
+  .alert { display: flex; gap: 12px; padding: 12px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--info-bg); width: 100%; }
+  .alert strong { display: block; }
+  .alert.success { background: var(--success-bg); } .alert.success strong { color: var(--success); }
+  .alert.warning { background: var(--warning-bg); } .alert.warning strong { color: var(--warning); }
+  .alert.danger  { background: var(--danger-bg); }  .alert.danger strong  { color: var(--danger); }
+  .alert.info strong { color: var(--accent); }
+  .alert .icon { font-size: 18px; line-height: 1.4; }
+
+  /* ---------- Tabs ---------- */
+  .tabs { width: 100%; }
+  .tablist { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+  .tab { font: inherit; background: none; border: 0; padding: 10px 14px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+  .tabpanel { padding: 16px 4px 4px; color: var(--text-muted); }
+  .tabpanel[hidden] { display: none; }
+
+  /* ---------- Progress / Avatar ---------- */
+  .progress { width: 100%; height: 8px; border-radius: 999px; background: var(--bg-inset); overflow: hidden; }
+  .progress > i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .4s; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; border: 2px solid var(--bg); }
+  .avatars { display: flex; } .avatars .avatar + .avatar { margin-left: -10px; }
+
+  /* ---------- Tooltip ---------- */
+  .tip { position: relative; }
+  .tip::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
+    background: var(--text); color: var(--bg); font-size: 12px; padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s;
+  }
+  .tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: translateX(-50%); }
+
+  /* ---------- Table ---------- */
+  .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: var(--bg-subtle); font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--bg-subtle); }
+
+  /* ---------- Modal / Toast ---------- */
+  dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); padding: 0; width: min(440px, 92vw); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(1,4,9,.55); }
+  dialog .m-head { padding: 18px 20px 6px; font-size: 18px; font-weight: 700; }
+  dialog .m-body { padding: 0 20px 16px; color: var(--text-muted); }
+  dialog .m-foot { padding: 12px 20px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--border); background: var(--bg-subtle); border-radius: 0 0 12px 12px; }
+  .toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 50; }
+  .toast { background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow); font-size: 14px; animation: pop .2s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } }
+
+  /* ---------- Tokens ---------- */
+  .swatches { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); width: 100%; }
+  .swatch { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; font-size: 12.5px; }
+  .swatch i { display: block; height: 54px; }
+  .swatch span { display: block; padding: 8px 10px; font-family: var(--mono); color: var(--text-muted); }
+
+  footer { padding: 32px 24px; text-align: center; color: var(--text-muted); font-size: 13px; border-top: 1px solid var(--border); }
+
+  @media (max-width: 820px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.side { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-mark"></span> UI 元件空間</div>
+  <div class="spacer"></div>
+  <button class="btn sm" id="themeBtn" aria-label="切換淺色／深色主題">🌓 主題</button>
+  <a class="btn sm" href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+</header>
+
+<div class="shell">
+  <nav class="side" aria-label="元件導覽">
+    <h4>元件</h4>
+    <a href="#colors">色彩</a>
+    <a href="#buttons">按鈕</a>
+    <a href="#badges">標籤</a>
+    <a href="#forms">表單</a>
+    <a href="#cards">卡片</a>
+    <a href="#alerts">提示訊息</a>
+    <a href="#tabs">分頁</a>
+    <a href="#feedback">進度與頭像</a>
+    <a href="#table">表格</a>
+    <a href="#overlay">對話框與通知</a>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <h1>簡潔現代的 UI 元件展示</h1>
+      <p>一組純 HTML／CSS／JavaScript 製作的元件，不依賴任何套件，支援淺色與深色主題自動切換，可直接放上 GitHub Pages。</p>
+    </div>
+
+    <section id="colors">
+      <h2>色彩</h2>
+      <p class="lead">所有顏色皆以 CSS 變數定義，改一處即可換整個主題。</p>
+      <div class="demo">
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </section>
+
+    <section id="buttons">
+      <h2>按鈕</h2>
+      <p class="lead">主要、次要、危險、幽靈與載入狀態。</p>
+      <div class="demo">
+        <button class="btn primary">主要</button>
+        <button class="btn">次要</button>
+        <button class="btn danger">刪除</button>
+        <button class="btn ghost">幽靈</button>
+        <button class="btn" disabled>停用</button>
+        <button class="btn primary" id="loadBtn"><span>點我載入</span></button>
+        <button class="btn sm">小</button>
+        <button class="btn lg primary">大</button>
+      </div>
+    </section>
+
+    <section id="badges">
+      <h2>標籤</h2>
+      <p class="lead">用於狀態、分類與計數。</p>
+      <div class="demo">
+        <span class="badge">預設</span>
+        <span class="badge info"><i class="dot"></i>進行中</span>
+        <span class="badge success"><i class="dot"></i>已完成</span>
+        <span class="badge warning"><i class="dot"></i>待審核</span>
+        <span class="badge danger"><i class="dot"></i>失敗</span>
+      </div>
+    </section>
+
+    <section id="forms">
+      <h2>表單</h2>
+      <p class="lead">輸入框、選單、核取方塊、單選、開關與滑桿。</p>
+      <div class="demo col">
+        <div class="grid">
+          <div class="field">
+            <label for="f-name">名稱</label>
+            <input class="input" id="f-name" placeholder="輸入專案名稱">
+            <span class="hint">僅限英文、數字與連字號。</span>
+          </div>
+          <div class="field">
+            <label for="f-mail">電子郵件</label>
+            <input class="input" id="f-mail" type="email" value="not-an-email" aria-invalid="true">
+            <span class="hint error">請輸入有效的電子郵件。</span>
+          </div>
+          <div class="field">
+            <label for="f-sel">授權條款</label>
+            <select class="select" id="f-sel">
+              <option>MIT</option><option>Apache-2.0</option><option>GPL-3.0</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-desc">描述</label>
+          <textarea class="input" id="f-desc" placeholder="簡單介紹這個專案…"></textarea>
+        </div>
+        <div class="demo" style="border:0;padding:0">
+          <label class="check"><input type="checkbox" checked> 公開儲存庫</label>
+          <label class="check"><input type="checkbox"> 加入 README</label>
+          <label class="radio"><input type="radio" name="r" checked> 個人</label>
+          <label class="radio"><input type="radio" name="r"> 組織</label>
+          <label class="switch"><input type="checkbox" checked><span class="track"></span> 啟用通知</label>
+        </div>
+        <div class="field">
+          <label for="f-range">音量：<output id="rangeOut">40</output></label>
+          <input class="range" id="f-range" type="range" min="0" max="100" value="40">
+        </div>
+      </div>
+    </section>
+
+    <section id="cards">
+      <h2>卡片</h2>
+      <p class="lead">內容卡片與數據卡片。</p>
+      <div class="demo">
+        <div class="grid">
+          <article class="card raised">
+            <div class="thumb"></div>
+            <div class="body">
+              <h3>專案卡片</h3>
+              <p>用來呈現專案、文章或任何內容摘要。</p>
+            </div>
+            <div class="foot"><button class="btn sm">取消</button><button class="btn sm primary">查看</button></div>
+          </article>
+          <article class="card stat"><div class="body">
+            <p>本月星星數</p><div class="num">1,284</div><div class="delta up">▲ 12.5%</div>
+          </div></article>
+          <article class="card stat"><div class="body">
+            <p>未解決 Issue</p><div class="num">37</div><div class="delta down">▼ 4.2%</div>
+          </div></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="alerts">
+      <h2>提示訊息</h2>
+      <p class="lead">四種語意層級。</p>
+      <div class="demo col">
+        <div class="alert info"><span class="icon">ℹ️</span><div><strong>資訊</strong>新版本將於下週發布。</div></div>
+        <div class="alert success"><span class="icon">✅</span><div><strong>成功</strong>變更已儲存。</div></div>
+        <div class="alert warning"><span class="icon">⚠️</span><div><strong>注意</strong>此操作可能影響其他成員。</div></div>
+        <div class="alert danger"><span class="icon">⛔</span><div><strong>錯誤</strong>無法連線到伺服器，請稍後再試。</div></div>
+      </div>
+    </section>
+
+    <section id="tabs">
+      <h2>分頁</h2>
+      <p class="lead">支援鍵盤左右鍵切換。</p>
+      <div class="demo">
+        <div class="tabs" id="tabs">
+          <div class="tablist" role="tablist">
+            <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t1">概覽</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t2" tabindex="-1">活動</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="p3" id="t3" tabindex="-1">設定</button>
+          </div>
+          <div class="tabpanel" role="tabpanel" id="p1" aria-labelledby="t1">這裡是專案概覽內容。</div>
+          <div class="tabpanel" role="tabpanel" id="p2" aria-labelledby="t2" hidden>這裡是最近活動紀錄。</div>
+          <div class="tabpanel" role="tabpanel" id="p3" aria-labelledby="t3" hidden>這裡是專案設定選項。</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="feedback">
+      <h2>進度與頭像</h2>
+      <p class="lead">進度條、頭像群組與提示氣泡。</p>
+      <div class="demo col">
+        <div class="field"><label>上傳進度 <span id="pgText" class="hint">65%</span></label>
+          <div class="progress" role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"><i id="pg" style="width:65%"></i></div>
+        </div>
+        <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+          <div class="avatars">
+            <span class="avatar" style="background:#0969da">A</span>
+            <span class="avatar" style="background:#8250df">B</span>
+            <span class="avatar" style="background:#1a7f37">C</span>
+            <span class="avatar" style="background:#656d76">+4</span>
+          </div>
+          <button class="btn tip" data-tip="這是提示氣泡">滑鼠移到這裡</button>
+          <button class="btn sm" id="pgBtn">增加進度</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="table">
+      <h2>表格</h2>
+      <p class="lead">資料表格，行懸停高亮。</p>
+      <div class="demo">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>專案</th><th>狀態</th><th>語言</th><th>星星</th></tr></thead>
+            <tbody>
+              <tr><td>ui-space</td><td><span class="badge success"><i class="dot"></i>活躍</span></td><td>HTML</td><td>128</td></tr>
+              <tr><td>design-tokens</td><td><span class="badge warning"><i class="dot"></i>維護中</span></td><td>CSS</td><td>64</td></tr>
+              <tr><td>icon-kit</td><td><span class="badge"><i class="dot"></i>封存</span></td><td>SVG</td><td>23</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="overlay">
+      <h2>對話框與通知</h2>
+      <p class="lead">使用原生 <code>&lt;dialog&gt;</code>，自帶焦點管理與 Esc 關閉。</p>
+      <div class="demo">
+        <button class="btn primary" id="openModal">開啟對話框</button>
+        <button class="btn" id="toastBtn">顯示通知</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>以純 HTML／CSS／JS 製作 · 可直接部署到 GitHub Pages</footer>
+
+<dialog id="modal">
+  <div class="m-head">確認刪除？</div>
+  <div class="m-body">此動作無法復原，請確認是否繼續。</div>
+  <form method="dialog" class="m-foot">
+    <button class="btn" value="cancel">取消</button>
+    <button class="btn danger" value="ok">刪除</button>
+  </form>
+</dialog>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  // Theme toggle (remember choice if storage is available)
+  try { var saved = localStorage.getItem("theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var isDark = root.getAttribute("data-theme") === "dark" ||
+      (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+    var next = isDark ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    renderSwatches();
+  });
+
+  // Color swatches read live from CSS variables
+  function renderSwatches() {
+    var names = ["--accent", "--success", "--warning", "--danger", "--bg-subtle", "--border", "--text", "--text-muted"];
+    var cs = getComputedStyle(root), box = document.getElementById("swatches");
+    box.innerHTML = names.map(function (n) {
+      var v = cs.getPropertyValue(n).trim();
+      return '<div class="swatch"><i style="background:var(' + n + ')"></i><span>' + n + '<br>' + v + '</span></div>';
+    }).join("");
+  }
+  renderSwatches();
+
+  // Toast
+  function toast(msg) {
+    var t = document.createElement("div");
+    t.className = "toast"; t.textContent = msg;
+    document.getElementById("toasts").appendChild(t);
+    setTimeout(function () { t.remove(); }, 2600);
+  }
+  document.getElementById("toastBtn").addEventListener("click", function () { toast("✅ 已儲存變更"); });
+
+  // Modal
+  var modal = document.getElementById("modal");
+  document.getElementById("openModal").addEventListener("click", function () { modal.showModal(); });
+  modal.addEventListener("close", function () {
+    if (modal.returnValue === "ok") toast("🗑️ 已刪除");
+  });
+
+  // Loading button
+  var lb = document.getElementById("loadBtn");
+  lb.addEventListener("click", function () {
+    lb.disabled = true;
+    lb.innerHTML = '<i class="spin"></i><span>載入中…</span>';
+    setTimeout(function () { lb.disabled = false; lb.innerHTML = "<span>點我載入</span>"; toast("載入完成"); }, 1600);
+  });
+
+  // Range output
+  var rg = document.getElementById("f-range");
+  rg.addEventListener("input", function () { document.getElementById("rangeOut").textContent = rg.value; });
+
+  // Progress
+  var pv = 65;
+  document.getElementById("pgBtn").addEventListener("click", function () {
+    pv = pv >= 100 ? 0 : Math.min(100, pv + 15);
+    document.getElementById("pg").style.width = pv + "%";
+    document.getElementById("pgText").textContent = pv + "%";
+    document.querySelector(".progress").setAttribute("aria-valuenow", pv);
+  });
+
+  // Tabs with keyboard support
+  var tabs = Array.prototype.slice.call(document.querySelectorAll("#tabs .tab"));
+  function select(i) {
+    tabs.forEach(function (t, j) {
+      var on = i === j;
+      t.setAttribute("aria-selected", on);
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+    tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { select(i); });
+    t.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") select((i + 1) % tabs.length);
+      if (e.key === "ArrowLeft") select((i - 1 + tabs.length) % tabs.length);
+    });
+  });
+
+  // Side nav highlight
+  var links = document.querySelectorAll("nav.side a");
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) {
+        links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + en.target.id); });
+      }
+    });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+  document.querySelectorAll("main section").forEach(function (s) { io.observe(s); });
+})();
+</script>
+</body>
+</html>
