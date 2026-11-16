@@ -14,8 +14,10 @@
     --danger: #cf222e; --danger-bg: #ffebe9; --info-bg: #ddf4ff;
     --shadow: 0 1px 2px rgba(31,35,40,.06), 0 4px 16px rgba(31,35,40,.08);
     --wall: #f3f5f8; --wall-top: #fbfcfd; --base: #dfe4ea;
-    --floor: #cdb99a; --tile: rgba(80,55,25,.18);
-    --ceil: #ffffff; --light: rgba(255,244,200,.95);
+    --floor: #8a5a35; --plank: rgba(0,0,0,.3);
+    --ceil: #efe5cd; --light: rgba(255,244,200,.95);
+    --board: rgba(255,255,255,.9); --dim: rgba(0,0,0,.06);
+    --wood: #b27743; --plaster: #e6d9bd;
     --radius: 8px;
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Helvetica, Arial, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -29,8 +31,10 @@
       --danger: #f85149; --danger-bg: #301a1f; --info-bg: #10243f;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.4);
       --wall: #151a21; --wall-top: #1b212a; --base: #0d1117;
-      --floor: #3a3128; --tile: rgba(0,0,0,.35);
-      --ceil: #11151b; --light: rgba(255,236,170,.55);
+      --floor: #4a3220; --plank: rgba(0,0,0,.45);
+      --ceil: #2a261f; --light: rgba(255,236,170,.55);
+      --board: rgba(13,17,23,.9); --dim: rgba(0,0,0,.42);
+    --wood: #8a5c36; --plaster: #bfb299;
     }
   }
   :root[data-theme="dark"] {
@@ -41,8 +45,10 @@
     --danger: #f85149; --danger-bg: #301a1f; --info-bg: #10243f;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.4);
     --wall: #151a21; --wall-top: #1b212a; --base: #0d1117;
-    --floor: #3a3128; --tile: rgba(0,0,0,.35);
-    --ceil: #11151b; --light: rgba(255,236,170,.55);
+    --floor: #4a3220; --plank: rgba(0,0,0,.45);
+    --ceil: #2a261f; --light: rgba(255,236,170,.55);
+    --board: rgba(13,17,23,.9); --dim: rgba(0,0,0,.42);
+    --wood: #8a5c36; --plaster: #bfb299;
   }
 
   * { box-sizing: border-box; }
@@ -59,8 +65,36 @@
   .face { position: absolute; overflow: hidden; backface-visibility: hidden; user-select: none; -webkit-user-select: none; background: var(--wall); }
   .face input, .face textarea { user-select: text; -webkit-user-select: text; }
   .face::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--shade, none); }
-  .wall { left: -600px; top: -350px; width: 1200px; height: 700px; padding: 34px 52px 44px; font-size: 16px; background: linear-gradient(180deg, var(--wall-top), var(--wall)); border: 1px solid var(--border); }
-  .wall::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 18px; background: var(--base); border-top: 1px solid var(--border); }
+  /* 牆面：上方木板、下方米色牆，仿照照片裡的房間 */
+  .wall { left: -600px; top: -350px; width: 1200px; height: 700px; font-size: 16px; border: 1px solid rgba(0,0,0,.4);
+    background-color: var(--plaster);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(60,30,10,.4) 0 2px, transparent 2px 240px),
+      linear-gradient(180deg, var(--wood) 0 62%, #4b2e18 62% 62.8%, var(--plaster) 62.8% 100%);
+    background-size: 100% 62%, 100% 100%; background-position: top, top; background-repeat: no-repeat; }
+  .wall::before { content: ""; position: absolute; inset: 0; background: var(--dim); pointer-events: none; }
+  /* 牆上的介面面板：縮小並抬高，讓出下方給貨架 */
+  .board { position: absolute; left: 50%; top: 14px; width: 1100px; height: 610px; margin-left: -550px; padding: 18px 28px; transform-origin: 50% 0; transform: scale(.7); background: var(--board); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); transition: opacity .35s; }
+  .photos .board { opacity: 0; pointer-events: none; }
+
+  /* ================= 牆面裝飾 ================= */
+  .deco { position: absolute; display: block; font-style: normal; }
+  .frame { background: #fffdf8; padding: 7px; border: 5px solid #2b1d14; box-shadow: 0 6px 14px rgba(0,0,0,.4); }
+  .frame > i { display: block; width: 100%; height: 100%; background-size: cover; background-position: center; }
+  .poster { background: linear-gradient(160deg, #7a4dff, #ff6a3d 55%, #ffcf3d); border: 4px solid #2b1d14; color: #fff; font: italic 800 30px/1.1 "Brush Script MT", "Segoe Script", cursive, sans-serif; display: grid; place-items: center; text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.45); box-shadow: 0 6px 14px rgba(0,0,0,.35); }
+  .banner { background: #1a0707; color: #ff3b30; border: 2px solid #3a1010; font: 800 17px/1.2 sans-serif; letter-spacing: .1em; text-align: center; display: grid; place-items: center; text-shadow: 0 0 8px rgba(255,60,50,.85); box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+  .cork { background: radial-gradient(rgba(120,80,40,.4) 1px, transparent 1.6px) 0 0 / 8px 8px, #c99a62; border: 8px solid #6d4322; box-shadow: 0 6px 14px rgba(0,0,0,.4); }
+  .cork b { position: absolute; width: 34px; height: 42px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+  .cork b::before { content: ""; position: absolute; left: 50%; top: -3px; width: 7px; height: 7px; margin-left: -3px; border-radius: 50%; background: #d32f2f; }
+  .chart { background: repeating-linear-gradient(0deg, transparent 0 21px, rgba(40,70,170,.28) 21px 22px), repeating-linear-gradient(90deg, transparent 0 46px, rgba(40,70,170,.22) 46px 47px), #fbfbf8; border: 1px solid #cfcfc8; font: 14px/22px "Kaiti TC", "DFKai-SB", "KaiTi", "Comic Sans MS", cursive; color: #1c3fa8; padding: 6px 10px; box-shadow: 0 4px 10px rgba(0,0,0,.35); overflow: hidden; white-space: nowrap; }
+  .lamp { width: 190px; height: 34px; border-radius: 8px; background: linear-gradient(#fffdf2, #efe9d0); border: 5px solid #e8dcb0; box-shadow: 0 0 34px 10px rgba(255,248,210,.55); }
+  .win { background: linear-gradient(180deg, #bfe3ff, #e9f6ff 60%, #fff); border: 10px solid #efe9d8; box-shadow: inset 0 0 40px rgba(255,255,255,.8), 0 0 40px 6px rgba(255,244,200,.45); }
+  .win::after { content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: 45%; background: repeating-linear-gradient(180deg, rgba(240,236,224,.96) 0 12px, rgba(180,190,200,.55) 12px 14px); }
+  .clock { border-radius: 50%; background: #f7f7f2; border: 6px solid #3b3b3b; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+  .clock::before, .clock::after { content: ""; position: absolute; left: 50%; width: 3px; background: #222; transform-origin: 50% 100%; border-radius: 2px; }
+  .clock::before { top: 12%; height: 38%; transform: rotate(32deg); }
+  .clock::after { top: 24%; height: 26%; transform: rotate(-72deg); }
+  .note { width: 34px; height: 34px; box-shadow: 0 2px 5px rgba(0,0,0,.35); }
   .floor, .ceil { left: -600px; top: -600px; width: 1200px; height: 1200px; }
   .w-n { transform: translateZ(-600px); }
   .w-s { transform: rotateY(180deg) translateZ(-600px); }
@@ -70,22 +104,19 @@
   .floor {
     transform: rotateX(90deg) translateZ(-350px);
     background-color: var(--floor);
-    background-image: linear-gradient(var(--tile) 2px, transparent 2px), linear-gradient(90deg, var(--tile) 2px, transparent 2px);
-    background-size: 100px 100px;
+    background-image: repeating-linear-gradient(90deg, var(--plank) 0 2px, transparent 2px 120px), linear-gradient(180deg, rgba(255,255,255,.07), rgba(0,0,0,.14));
     display: grid; place-items: center;
-    --shade: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,.22));
+    --shade: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,.25));
   }
   .ceil {
     transform: rotateX(-90deg) translateZ(-350px) rotate(180deg);
-    background:
-      radial-gradient(circle at 25% 25%, var(--light), transparent 12%),
-      radial-gradient(circle at 75% 25%, var(--light), transparent 12%),
-      radial-gradient(circle at 25% 75%, var(--light), transparent 12%),
-      radial-gradient(circle at 75% 75%, var(--light), transparent 12%),
-      var(--ceil);
+    background: radial-gradient(circle at 50% 50%, var(--light), transparent 18%), var(--ceil);
     display: grid; place-items: center;
   }
-  .ceil h2 { margin: 0; font-size: 64px; letter-spacing: .3em; color: var(--text-muted); opacity: .5; }
+  .ceil .rail { position: absolute; left: 34%; top: 0; width: 10px; height: 100%; background: #f4f4f4; box-shadow: 0 0 0 1px rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.3); }
+  .ceil .spot { position: absolute; left: calc(34% - 14px); width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle, #fff 30%, var(--light) 60%, transparent 72%); }
+  .ceil .recess { position: absolute; left: 50%; top: 50%; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; background: radial-gradient(circle, #fff 45%, #cfcfcf 62%, #8a8a8a 66%, transparent 68%); }
+  .ceil h2 { margin: 220px 0 0; font-size: 44px; letter-spacing: .3em; color: var(--text-muted); opacity: .4; }
 
   .wall-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
   .wall-head h2 { margin: 0; font-size: 28px; letter-spacing: -.01em; }
@@ -248,6 +279,13 @@
 
     <!-- 北牆：按鈕與卡片 -->
     <section class="face wall w-n">
+      <i class="deco poster" style="left:34px;top:70px;width:148px;height:196px">Welcome 2</i>
+      <i class="deco banner" style="left:18px;top:292px;width:180px;height:50px">2016 NBA<br>CHAMPIONS</i>
+      <i class="deco frame" style="left:1008px;top:70px;width:180px;height:138px"><i style="background-image:url(room-1.jpg)"></i></i>
+      <i class="deco note" style="left:1022px;top:240px;background:#f7e66b;transform:rotate(-6deg)"></i>
+      <i class="deco note" style="left:1070px;top:250px;background:#9ae6b4;transform:rotate(5deg)"></i>
+      <i class="deco note" style="left:1118px;top:238px;background:#f6a5a5;transform:rotate(-3deg)"></i>
+      <div class="board">
       <div class="wall-head"><h2>北牆 · 按鈕與卡片</h2><span>走近一點，直接用滑鼠點點看</span></div>
       <div class="lbl">按鈕</div>
       <div class="row">
@@ -282,10 +320,15 @@
           <p>用 W A S D 走動，Q E 或拖曳轉動視角。到其他牆面看看更多元件。</p>
         </div></article>
       </div>
-    </section>
+    </div></section>
 
     <!-- 西牆：表單 -->
     <section class="face wall w-w">
+      <i class="deco lamp" style="left:14px;top:40px"></i>
+      <i class="deco chart" style="left:14px;top:110px;width:186px;height:300px">訂單　庫存　備註<br>S　25　35　45<br>M　23　30　41<br>L　19　20　38<br>SM 25　28　33<br>WL 12　15　20<br>合計　104　128　177<br>──────────<br>出貨　11/16<br>補貨　11/20</i>
+      <i class="deco frame" style="left:1008px;top:70px;width:180px;height:138px"><i style="background-image:url(room-2.jpg)"></i></i>
+      <i class="deco cork" style="left:1010px;top:240px;width:176px;height:130px"><b style="left:12px;top:14px;background:linear-gradient(135deg,#4aa3df 50%,#f7d154 50%);transform:rotate(-6deg)"></b><b style="left:62px;top:22px;background:#fff7c2;transform:rotate(4deg)"></b><b style="left:108px;top:10px;background:linear-gradient(135deg,#8bc34a 50%,#fff 50%);transform:rotate(-3deg)"></b><b style="left:40px;top:62px;background:#f6a5a5;transform:rotate(5deg)"></b><b style="left:96px;top:60px;background:linear-gradient(135deg,#ba68c8 50%,#ffe082 50%);transform:rotate(-5deg)"></b></i>
+      <div class="board">
       <div class="wall-head"><h2>西牆 · 表單</h2><span>輸入框、選單、開關與滑桿</span></div>
       <div class="cols">
         <div class="stack">
@@ -304,10 +347,14 @@
           <div class="row"><button class="btn primary">建立儲存庫</button><button class="btn">取消</button></div>
         </div>
       </div>
-    </section>
+    </div></section>
 
     <!-- 東牆：資料 -->
     <section class="face wall w-e">
+      <i class="deco cork" style="left:20px;top:70px;width:190px;height:150px"><b style="left:14px;top:14px;background:linear-gradient(135deg,#4aa3df 50%,#f7d154 50%);transform:rotate(-6deg)"></b><b style="left:64px;top:26px;background:#fff;transform:rotate(4deg)"></b><b style="left:112px;top:12px;background:linear-gradient(135deg,#ef5350 50%,#fff 50%);transform:rotate(-4deg)"></b><b style="left:30px;top:78px;background:#c5e1a5;transform:rotate(6deg)"></b><b style="left:84px;top:80px;background:linear-gradient(135deg,#7e57c2 50%,#ffe082 50%);transform:rotate(-5deg)"></b><b style="left:132px;top:84px;background:#ffcc80;transform:rotate(3deg)"></b></i>
+      <i class="deco clock" style="left:1070px;top:70px;width:100px;height:100px"></i>
+      <i class="deco frame" style="left:1008px;top:210px;width:180px;height:138px"><i style="background-image:url(room-2.jpg)"></i></i>
+      <div class="board">
       <div class="wall-head"><h2>東牆 · 資料</h2><span>表格、進度條與頭像</span></div>
       <div class="table-wrap">
         <table>
@@ -331,10 +378,14 @@
         <button class="btn sm" id="pgBtn">增加進度</button>
         <div class="avatars"><span class="avatar" style="background:#0969da">A</span><span class="avatar" style="background:#8250df">B</span><span class="avatar" style="background:#1a7f37">C</span><span class="avatar" style="background:#656d76">+4</span></div>
       </div>
-    </section>
+    </div></section>
 
     <!-- 南牆：回饋 -->
     <section class="face wall w-s">
+      <i class="deco win" style="left:20px;top:50px;width:170px;height:270px"></i>
+      <i class="deco frame" style="left:1008px;top:70px;width:180px;height:138px"><i style="background-image:url(room-1.jpg)"></i></i>
+      <i class="deco banner" style="left:1012px;top:240px;width:172px;height:46px">WELCOME<br>歡迎光臨</i>
+      <div class="board">
       <div class="wall-head"><h2>南牆 · 回饋</h2><span>提示、分頁、對話框與通知</span></div>
       <div class="cols">
         <div class="stack" style="gap:10px">
@@ -361,7 +412,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </div></section>
 
     <!-- 地板：色彩 -->
     <section class="face floor">
@@ -373,7 +424,10 @@
     </section>
 
     <!-- 天花板 -->
-    <section class="face ceil"><h2>UI SPACE</h2></section>
+    <section class="face ceil"><i class="rail"></i><i class="spot" style="top:22%"></i><i class="spot" style="top:48%"></i><i class="spot" style="top:74%"></i><i class="recess"></i><h2>UI SPACE</h2></section>
+
+    <!-- 貨架、塑膠箱與家具（由 JS 產生） -->
+    <div class="part" id="props"></div>
 
     <!-- 角色 -->
     <div class="char" id="char"></div>
@@ -384,6 +438,7 @@
 <header class="hud hud-top">
   <div class="brand"><span class="brand-mark"></span> UI 3D 房間</div>
   <div class="spacer"></div>
+  <button class="glass" id="photoBtn" title="隱藏牆上的介面面板，只看房間陳設 (P)">🧩 隱藏介面</button>
   <button class="glass" id="resetBtn" title="重置視角 (R)">重置視角</button>
   <button class="glass" id="themeBtn" aria-label="切換淺色／深色主題">🌓 主題</button>
 </header>
@@ -397,7 +452,7 @@
     <button class="glass" data-t="e">東牆<small>3</small></button>
     <button class="glass" data-t="s">南牆<small>4</small></button>
   </div>
-  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前</div>
+  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前 · P 隱藏／顯示牆上介面 · 貨架與書桌會擋住去路</div>
 </div>
 
 <div class="hud mini" id="mini" aria-hidden="true"><b class="n">北</b><b class="s">南</b><b class="w">西</b><b class="e">東</b><i id="miniDot"></i></div>
@@ -433,20 +488,23 @@
     var c = document.createElement("div");
     c.className = "cube";
     c.style.cssText = "left:" + (-w / 2) + "px;top:0;width:" + w + "px;height:" + h + "px";
-    var front = mkFace(w, h, w, h, "translateZ(" + d / 2 + "px)", col, "rgba(0,0,0,0)");
-    c.appendChild(front);
-    c.appendChild(mkFace(w, h, w, h, "rotateY(180deg) translateZ(" + d / 2 + "px)", col, "rgba(0,0,0,.3)"));
-    c.appendChild(mkFace(d, h, w, h, "rotateY(90deg) translateZ(" + w / 2 + "px)", col, "rgba(0,0,0,.15)"));
-    c.appendChild(mkFace(d, h, w, h, "rotateY(-90deg) translateZ(" + w / 2 + "px)", col, "rgba(0,0,0,.22)"));
-    c.appendChild(mkFace(w, d, w, h, "rotateX(90deg) translateZ(" + h / 2 + "px)", col, "rgba(255,255,255,.18)"));
-    c.appendChild(mkFace(w, d, w, h, "rotateX(-90deg) translateZ(" + h / 2 + "px)", col, "rgba(0,0,0,.4)"));
-    c.front = front;
+    var f = {
+      front: mkFace(w, h, w, h, "translateZ(" + d / 2 + "px)", col, "rgba(0,0,0,0)"),
+      back: mkFace(w, h, w, h, "rotateY(180deg) translateZ(" + d / 2 + "px)", col, "rgba(0,0,0,.3)"),
+      right: mkFace(d, h, w, h, "rotateY(90deg) translateZ(" + w / 2 + "px)", col, "rgba(0,0,0,.15)"),
+      left: mkFace(d, h, w, h, "rotateY(-90deg) translateZ(" + w / 2 + "px)", col, "rgba(0,0,0,.22)"),
+      top: mkFace(w, d, w, h, "rotateX(90deg) translateZ(" + h / 2 + "px)", col, "rgba(255,255,255,.18)"),
+      bottom: mkFace(w, d, w, h, "rotateX(-90deg) translateZ(" + h / 2 + "px)", col, "rgba(0,0,0,.4)")
+    };
+    for (var k in f) c.appendChild(f[k]);
+    c.f = f;
+    c.front = f.front;
     return c;
   }
-  function part(x, y, el) {
+  function part(x, y, el, z) {
     var p = document.createElement("div");
     p.className = "part";
-    p.style.transform = "translate3d(" + x + "px," + y + "px,0)";
+    p.style.transform = "translate3d(" + x + "px," + y + "px," + (z || 0) + "px)";
     p.appendChild(el);
     return p;
   }
@@ -474,6 +532,92 @@
     charEl.appendChild(part(0, -171, cube(46, 14, 46, hair)));
   })();
 
+  /* ---------- 房間陳設：貨架、塑膠箱、書桌（依照片重現） ---------- */
+  var propsEl = $("props");
+  var seed = 7;
+  function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  // b = 離地高度；y0 = 父層原點的世界 y（貨架內用 0，整個房間用 FLOOR）
+  function box(parent, w, h, d, col, x, b, z, y0) {
+    var c = cube(w, h, d, col);
+    parent.appendChild(part(x, y0 - b - h, c, z));
+    return c;
+  }
+  var NOTE = ["#f7e66b", "#ffffff", "#9ae6b4", "#f6a5a5", "#a5c8f6"];
+  var SUB = ["94,70,46", "126,98,62", "58,46,34", "110,84,54"];
+
+  // rot：0 = 長邊沿 z 軸（東／西牆）、90 = 長邊沿 x 軸（北／南牆）；sign：走道在本地 -x(-1) 或 +x(1)
+  function rack(cx, cz, rot, sign) {
+    var g = document.createElement("div");
+    g.className = "part";
+    g.style.transform = "translate3d(" + cx + "px," + FLOOR + "px," + cz + "px) rotateY(" + rot + "deg)";
+    var L = 300, DEP = 100, H = 250;
+    var sh = document.createElement("div");
+    sh.className = "cf";
+    sh.style.cssText = "width:" + (DEP + 40) + "px;height:" + (L + 40) + "px;left:" + (-(DEP + 40) / 2) + "px;top:" + (-(L + 40) / 2) + "px;" +
+      "background:radial-gradient(ellipse at center, rgba(0,0,0,.38), rgba(0,0,0,0) 70%);transform:rotateX(90deg) translateZ(1px)";
+    g.appendChild(sh);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (s) {
+      box(g, 6, H, 6, "#1d2026", s[0] * (DEP / 2 - 3), 0, s[1] * (L / 2 - 3), 0);
+    });
+    [18, 98, 178, 244].forEach(function (b) { box(g, DEP, 5, L, "#2a2e35", 0, b, 0, 0); });
+    [18, 98, 178].forEach(function (b) {
+      [-1, 1].forEach(function (k) {
+        var bin = box(g, 88, 56, 134, "rgba(205,222,235,.36)", 0, b + 5, k * 72, 0);
+        var side = sign < 0 ? bin.f.left : bin.f.right;
+        var fill = 18 + Math.round(rnd() * 34);
+        var sub = SUB[Math.floor(rnd() * SUB.length)];
+        side.style.background = "linear-gradient(180deg, rgba(205,222,235,.34) 0 " + (100 - fill) + "%, rgba(" + sub + ",.82) " + (100 - fill) + "% 100%)";
+        bin.f.top.style.background = "rgba(228,238,246,.55)";
+        if (rnd() > 0.25) {
+          var n = document.createElement("i");
+          n.style.cssText = "position:absolute;left:" + (8 + Math.round(rnd() * 60)) + "%;top:" + (10 + Math.round(rnd() * 20)) + "%;" +
+            "width:22px;height:18px;background:" + NOTE[Math.floor(rnd() * NOTE.length)] + ";transform:rotate(" + (Math.round(rnd() * 10) - 5) + "deg);box-shadow:0 1px 2px rgba(0,0,0,.3)";
+          side.appendChild(n);
+        }
+      });
+    });
+    propsEl.appendChild(g);
+  }
+  [-300, 0, 300].forEach(function (z) { rack(540, z, 0, -1); });      // 東牆 3 組
+  [-300, 0].forEach(function (z) { rack(-540, z, 0, 1); });            // 西牆 2 組（南側留給書桌）
+  [-300, 0, 300].forEach(function (x) { rack(x, -540, 90, -1); });   // 北牆 3 組
+  [-300, 300].forEach(function (x) { rack(x, 540, 90, 1); });          // 南牆 2 組
+
+  (function furniture() {
+    var WOOD = "#8a5a35", WOOD_D = "#5d3b22", CARD = "#c9a06c", CARD_D = "#b98f5a";
+    // 書桌（西南角）
+    box(propsEl, 100, 8, 300, WOOD, -545, 100, 300, FLOOR);
+    box(propsEl, 90, 100, 14, WOOD_D, -545, 0, 158, FLOOR);
+    box(propsEl, 90, 100, 14, WOOD_D, -545, 0, 442, FLOOR);
+    box(propsEl, 8, 92, 300, WOOD_D, -591, 8, 300, FLOOR);
+    // 桌上：紙箱、電子秤、杯子、塑膠盒
+    box(propsEl, 58, 42, 58, CARD, -548, 108, 400, FLOOR);
+    box(propsEl, 50, 34, 50, CARD_D, -548, 150, 400, FLOOR);
+    box(propsEl, 34, 6, 26, "#222", -540, 108, 300, FLOOR);
+    box(propsEl, 16, 16, 16, "#f4f4f4", -520, 108, 340, FLOOR);
+    box(propsEl, 16, 16, 16, "#f4f4f4", -560, 108, 345, FLOOR);
+    box(propsEl, 70, 38, 64, "rgba(255,255,255,.5)", -545, 108, 230, FLOOR);
+    // 地上：竹板凳、白色大收納箱、牆角紙箱
+    box(propsEl, 44, 56, 44, "#c8a15a", -420, 0, 380, FLOOR);
+    box(propsEl, 90, 70, 120, "rgba(255,255,255,.5)", -330, 0, 300, FLOOR);
+    box(propsEl, 62, 52, 62, CARD, -550, 0, 545, FLOOR);
+    box(propsEl, 56, 44, 56, CARD_D, -550, 52, 545, FLOOR);
+  })();
+
+  // 碰撞範圍 [x1, x2, z1, z2]
+  var COL = [
+    [490, 600, -460, 460], [-600, -490, -460, 150], [-460, 460, -600, -490],
+    [-460, -140, 490, 600], [140, 460, 490, 600],
+    [-600, -490, 150, 450], [-445, -395, 355, 405], [-380, -280, 236, 364], [-585, -515, 510, 580]
+  ];
+  function blocked(x, z) {
+    for (var i = 0; i < COL.length; i++) {
+      var r = COL[i];
+      if (x > r[0] - 24 && x < r[1] + 24 && z > r[2] - 24 && z < r[3] + 24) return true;
+    }
+    return false;
+  }
+
   /* ---------- 狀態 ---------- */
   var S = { x: 0, z: 140, h: 180 };                       // 角色位置與朝向（度）
   var C = { x: 0, z: 140, yaw: 0, pitch: 22, D: 430 };    // 相機
@@ -497,7 +641,7 @@
   function teleport(k) {
     var t = TELE[k]; if (!t) return;
     S.x = t[0]; S.z = t[1]; S.h = t[3];
-    C.x = S.x; C.z = S.z; C.yaw = t[2]; C.pitch = 14; C.D = 470;
+    C.x = S.x; C.z = S.z; C.yaw = t[2]; C.pitch = 18; C.D = 400;
   }
   function resetCam() { C.yaw = 0; C.pitch = 22; C.D = 430; }
   var MOVE = { w: 1, a: 1, s: 1, d: 1, q: 1, e: 1, shift: 1, arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1 };
@@ -506,6 +650,7 @@
     var k = e.key.toLowerCase();
     if (MOVE[k]) { K[k] = true; if (k.indexOf("arrow") === 0) e.preventDefault(); }
     else if (k === "r") resetCam();
+    else if (k === "p") togglePhotos();
     else if (k === "1") teleport("n");
     else if (k === "2") teleport("w");
     else if (k === "3") teleport("e");
@@ -587,8 +732,9 @@
       var yr = C.yaw * Math.PI / 180, sp = run ? 460 : 280;
       var dx = Math.sin(yr) * iy + Math.cos(yr) * ix;
       var dz = -Math.cos(yr) * iy + Math.sin(yr) * ix;
-      S.x = clamp(S.x + dx * sp * dt, -LIM, LIM);
-      S.z = clamp(S.z + dz * sp * dt, -LIM, LIM);
+      var nx = clamp(S.x + dx * sp * dt, -LIM, LIM), nz = clamp(S.z + dz * sp * dt, -LIM, LIM);
+      if (!blocked(nx, S.z)) S.x = nx;
+      if (!blocked(S.x, nz)) S.z = nz;
       var th = Math.atan2(dx, dz) * 180 / Math.PI;
       var d = ((th - S.h) % 360 + 540) % 360 - 180;
       S.h += d * (1 - Math.exp(-dt * 14));
@@ -620,6 +766,11 @@
     var b = e.target.closest("[data-t]"); if (b) teleport(b.getAttribute("data-t"));
   });
   $("resetBtn").addEventListener("click", resetCam);
+  function togglePhotos() {
+    var on = document.body.classList.toggle("photos");
+    $("photoBtn").textContent = on ? "🧩 顯示介面" : "🧩 隱藏介面";
+  }
+  $("photoBtn").addEventListener("click", togglePhotos);
 
   /* ---------- 主題與色彩地毯 ---------- */
   function renderSwatches() {
