@@ -593,7 +593,7 @@
     function gx(u, v) { return TX + u * CA + v * SA; }
     function gz(u, v) { return TZ - u * SA + v * CA; }
     // 地圖範圍（與重慶路平行的 u 軸、與寧夏路平行的 v 軸，單位：地圖像素）
-    TOWN.sc = SC; TOWN.u0 = -125 * SC; TOWN.u1 = 545 * SC; TOWN.v0 = -228 * SC; TOWN.v1 = 300 * SC; TOWN.ok = true;
+    TOWN.sc = SC; TOWN.u0 = -650 * SC; TOWN.u1 = 545 * SC; TOWN.v0 = -228 * SC; TOWN.v1 = 300 * SC; TOWN.ok = true;
     // 建築要在地圖範圍內，且不能壓到房子本身（房子範圍 ±616，外加人行道餘裕）
     function inRegion(x, z, r) {
       if (Math.max(Math.abs(x), Math.abs(z)) < 760 + r * 0.7) return false;
@@ -642,63 +642,76 @@
        （用上萬像素寬的 CSS 背景會被瀏覽器切成上千個小方塊，鏡頭一動就要全部重畫，非常慢）---- */
     // [路名, 方向(u=與重慶路平行, v=與寧夏路平行), 位置, 半寬, 起, 迄, 主要道路]（單位：地圖像素）
     var ROADS = [
-      ["重慶路", "u", 0, 17, -150, 560, 1],
+      ["重慶路", "u", 0, 17, -650, 560, 1],
       ["寧夏路", "v", 0, 13, -330, 330, 1],
       ["河南路一段", "v", 282, 15, -330, 330, 1],
-      ["寧夏東二街", "u", 64, 7, -150, 560, 0],
-      ["寧夏東一街", "u", 169, 7, -150, 560, 0],
-      ["寧夏東四街", "u", 239, 7, -150, 560, 0],
+      ["寧夏東二街", "u", 64, 7, 14, 560, 0],
+      ["寧夏東一街", "u", 169, 7, 14, 560, 0],
+      ["寧夏東四街", "u", 239, 7, 14, 560, 0],
       ["寧夏東五街", "v", 130, 7, 17, 330, 0],
       ["寧夏東六街", "v", 205, 7, 17, 330, 0],
       ["內江街", "v", 377, 7, -330, -17, 0],
       ["內江街", "v", 458, 7, -330, -17, 0],
-      ["北側道路", "u", -215, 10, -150, 560, 0]
+      ["北側道路", "u", -215, 10, -650, 560, 0],
+      // 寧夏路以西（依第二張街道圖新增）
+      ["甘肅路一段", "v", -590, 17, -330, 330, 1],
+      ["成都路", "u", 239, 11, -650, -14, 1],
+      ["寧夏西一街", "u", 64, 7, -650, -14, 0],
+      ["寧夏西三街", "u", 169, 7, -650, -14, 0],
+      ["寧夏西二街", "v", -132, 7, -330, 330, 0],
+      ["寧夏西三街", "v", -268, 7, -330, 330, 0]
     ];
     TOWN.roads = ROADS;
     var minors = ROADS.filter(function (r) { return !r[6]; });
     var mains = ROADS.filter(function (r) { return r[6]; });
-    var cvs = document.createElement("canvas");
     var U0 = TOWN.u0, U1 = TOWN.u1, V0 = TOWN.v0, V1 = TOWN.v1;
-    cvs.width = 4096; cvs.height = Math.round(4096 * (V1 - V0) / (U1 - U0));
-    var ctx = cvs.getContext("2d");
-    var kx = cvs.width / (U1 - U0), ky = cvs.height / (V1 - V0);
     function mix(hex, n) {                     // 與夜色混合（對應 CSS 的 color-mix(... var(--night))）
       var v = parseInt(hex.slice(1), 16), t = n / 100, B = [11, 16, 32];
       return "rgb(" + [v >> 16, (v >> 8) & 255, v & 255].map(function (c, i) { return Math.round(c * (1 - t) + B[i] * t); }).join(",") + ")";
     }
-    function fr(u1, v1, u2, v2) { ctx.fillRect((u1 - U0) * kx, (v1 - V0) * ky, (u2 - u1) * kx, (v2 - v1) * ky); }
-    function bandC(r, half) {
-      var pos = r[2] * SC, a = r[4] * SC, b = r[5] * SC;
-      if (r[1] === "u") fr(a, pos - half, b, pos + half); else fr(pos - half, a, pos + half, b);
-    }
-    function dashC(r) {                         // 主要道路中線：150 實線、150 空白
-      var pos = r[2] * SC, a = r[4] * SC, b = r[5] * SC;
-      for (var s = a; s < b; s += 300) {
-        var e = Math.min(s + 150, b);
-        if (r[1] === "u") fr(s, pos - 6, e, pos + 6); else fr(pos - 6, s, pos + 6, e);
-      }
+    // 整張地圖太寬，一張畫布解析度不夠，所以左右切成兩塊（各 3072 像素寬），邊緣多重疊 8 個單位避免縫隙
+    var NT = 2, tiles = [];
+    for (var ti = 0; ti < NT; ti++) {
+      var su0 = U0 + (U1 - U0) * ti / NT - 8, su1 = U0 + (U1 - U0) * (ti + 1) / NT + 8;
+      var cv = document.createElement("canvas");
+      cv.width = 3072; cv.height = Math.round(3072 * (V1 - V0) / (su1 - su0));
+      cv.className = "tp";
+      cv.style.cssText = "width:" + (su1 - su0) + "px;height:" + (V1 - V0) + "px;left:" + (-(su1 - su0) / 2) + "px;top:" + (-(V1 - V0) / 2) + "px;" +
+        "transform:translate3d(" + (su0 + su1) / 2 + "px,0px," + (V0 + V1) / 2 + "px) rotateX(90deg)";
+      $("townG").appendChild(cv);
+      tiles.push({ c: cv, u0: su0, u1: su1 });
     }
     function drawGround() {
       var n = parseFloat(getComputedStyle(root).getPropertyValue("--night")) || 0;
-      ctx.fillStyle = mix("#bdb8a8", n); ctx.fillRect(0, 0, cvs.width, cvs.height);
-      ctx.fillStyle = mix("#b7c79e", n); fr(18 * SC, -201 * SC, 262 * SC, -25 * SC);          // 文華高中操場草地
-      ctx.fillStyle = mix("#aaa89f", n);                                                      // 人行道
-      minors.forEach(function (r) { bandC(r, r[3] * SC + 42); });
-      mains.forEach(function (r) { bandC(r, r[3] * SC + 42); });
-      ctx.fillStyle = mix("#4f545b", n);                                                      // 柏油路面
-      mains.forEach(function (r) { bandC(r, r[3] * SC); });
-      ctx.fillStyle = mix("#f1ecd8", n);                                                      // 中線
-      mains.forEach(dashC);
-      ctx.fillStyle = mix("#4f545b", n);                                                      // 小路蓋過主幹道的中線
-      minors.forEach(function (r) { bandC(r, r[3] * SC); });
+      tiles.forEach(function (t) {
+        var ctx = t.c.getContext("2d"), kx = t.c.width / (t.u1 - t.u0), ky = t.c.height / (V1 - V0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = mix("#bdb8a8", n); ctx.fillRect(0, 0, t.c.width, t.c.height);
+        ctx.setTransform(kx, 0, 0, ky, -t.u0 * kx, -V0 * ky);                                   // 之後直接用街道座標畫
+        function fr(a, b, c, d) { ctx.fillRect(a, b, c - a, d - b); }
+        function bandC(r, half) {
+          var pos = r[2] * SC, a = r[4] * SC, b = r[5] * SC;
+          if (r[1] === "u") fr(a, pos - half, b, pos + half); else fr(pos - half, a, pos + half, b);
+        }
+        function dashC(r) {                         // 主要道路中線：150 實線、150 空白
+          var pos = r[2] * SC, a = Math.max(r[4] * SC, t.u0), b = Math.min(r[5] * SC, r[1] === "u" ? t.u1 : r[5] * SC);
+          if (r[1] === "u") { for (var s = Math.floor(a / 300) * 300; s < b; s += 300) fr(Math.max(s, a), pos - 6, Math.min(s + 150, b), pos + 6); }
+          else { for (var q = r[4] * SC; q < r[5] * SC; q += 300) fr(pos - 6, q, pos + 6, Math.min(q + 150, r[5] * SC)); }
+        }
+        ctx.fillStyle = mix("#b7c79e", n); fr(18 * SC, -201 * SC, 262 * SC, -25 * SC);          // 文華高中操場草地
+        ctx.fillStyle = mix("#aaa89f", n);                                                      // 人行道
+        minors.forEach(function (r) { bandC(r, r[3] * SC + 42); });
+        mains.forEach(function (r) { bandC(r, r[3] * SC + 42); });
+        ctx.fillStyle = mix("#4f545b", n);                                                      // 柏油路面
+        mains.forEach(function (r) { bandC(r, r[3] * SC); });
+        ctx.fillStyle = mix("#f1ecd8", n);                                                      // 中線
+        mains.forEach(dashC);
+        ctx.fillStyle = mix("#4f545b", n);                                                      // 小路蓋過主幹道的中線
+        minors.forEach(function (r) { bandC(r, r[3] * SC); });
+      });
     }
     drawGround();
     groundRedraw = drawGround;
-    var gp = cvs;
-    gp.className = "tp";
-    gp.style.cssText = "width:" + (U1 - U0) + "px;height:" + (V1 - V0) + "px;left:" + (-(U1 - U0) / 2) + "px;top:" + (-(V1 - V0) / 2) + "px;" +
-      "transform:translate3d(" + (U0 + U1) / 2 + "px,0px," + (V0 + V1) / 2 + "px) rotateX(90deg)";
-    $("townG").appendChild(gp);
 
     /* ---- 一般房屋：沿街一排排的方塊 ---- */
     var HC = ["#e9d9b8", "#dcc9a4", "#c9d6e3", "#ebcdc2", "#d7e0c4", "#efe8d8", "#cfbea9", "#bfd0cf"];
@@ -720,6 +733,12 @@
     var NORTH_SEGS = [[-110, -18], [297, 364], [390, 445], [471, 520]];
     var NORTH_ROWS = [[-50, -22, 3, 5], [-98, -70, 2, 4], [-146, -118, 2, 4], [-194, -166, 2, 3]];
     NORTH_SEGS.forEach(function (s) { NORTH_ROWS.forEach(function (r) { row(s[0], s[1], r[0], r[1], r[2], r[3]); }); });
+    // 寧夏路以西：甘肅路一段、寧夏西二街、寧夏西三街之間的街區（列在最後，原本房子的外觀不變）
+    var WEST_SEGS = [[-645, -614], [-566, -279], [-257, -143]];
+    WEST_SEGS.forEach(function (s) {
+      SOUTH_ROWS.forEach(function (r) { row(s[0], s[1], r[0], r[1], r[2], r[3]); });
+      NORTH_ROWS.forEach(function (r) { row(s[0], s[1], r[0], r[1], r[2], r[3]); });
+    });
 
     cands.forEach(function (c) {
       var cu = (c.u1 + c.u2) / 2 * SC, cv = (c.v1 + c.v2) / 2 * SC;
@@ -776,7 +795,9 @@
     /* ---- 路牌 ---- */
     [["重慶路", "u", 185, 21], ["重慶路", "u", -30, -21], ["寧夏路", "v", 17, 100], ["河南路一段", "v", 299, -60],
      ["寧夏東二街", "u", 100, 73], ["寧夏東一街", "u", 100, 178], ["寧夏東四街", "u", 100, 248],
-     ["寧夏東五街", "v", 139, 110], ["寧夏東六街", "v", 214, 110], ["內江街", "v", 387, -100], ["內江街", "v", 468, -100]].forEach(function (s) {
+     ["寧夏東五街", "v", 139, 110], ["寧夏東六街", "v", 214, 110], ["內江街", "v", 387, -100], ["內江街", "v", 468, -100],
+     ["甘肅路一段", "v", -566, 110], ["寧夏西二街", "v", -122, 110], ["寧夏西三街", "v", -258, 110],
+     ["寧夏西一街", "u", -300, 73], ["寧夏西三街", "u", -400, 178], ["成都路", "u", -450, 252]].forEach(function (s) {
       var u = s[2] * SC, v = s[3] * SC;
       if (!inRegion(gx(u, v), gz(u, v), 200)) return;
       tbox(10, 300, 10, "#7a7f86", u, 0, v, false);
@@ -928,17 +949,43 @@
       g.fillStyle = color || "#1b2a3a"; g.fillText(text, X, Y);
     }
     function inHouse(q) { return Math.abs(q[0]) < 700 && Math.abs(q[1]) < 700; }
+    var placed = [];                                       // 已放好的文字範圍，後面的字會避開
+    function fontOf(size) { return "700 " + size + "px 'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif"; }
+    function boxOf(text, q, size) {
+      g.font = fontOf(size);
+      var w = g.measureText(text).width + 16, hh = size * 1.35, X = (q[0] - OB.x0) * k, Y = (q[1] - OB.z0) * k;
+      return [X - w / 2, Y - hh / 2, X + w / 2, Y + hh / 2];
+    }
+    function overlaps(a, b) { return a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]; }
+    // 一條路只標一次：從候選位置挑第一個不壓到其他文字、也不在房子上的地方
+    function labelOnce(text, cands, size, color) {
+      var pick = null, pickBox = null, least = 1e9;
+      for (var i = 0; i < cands.length; i++) {
+        var q = cands[i]; if (inHouse(q)) continue;
+        var bx = boxOf(text, q, size), cnt = 0;
+        placed.forEach(function (o) { if (overlaps(bx, o)) cnt++; });
+        if (cnt < least) { least = cnt; pick = q; pickBox = bx; }
+        if (cnt === 0) break;
+      }
+      if (!pick) return;
+      placed.push(pickBox); label(text, pick[0], pick[1], size, color);
+    }
+    var sc = streetPos(140, -113); labelOnce("臺中市立文華高級中等學校", [sc], 28, "#1f5f2a");
+    labelOnce("房子", [[0, 0]], 40, "#4b2e18"); labelOnce("門 ↑", [[0, -745]], 26, "#8a5a00");
     var ub = [TOWN.u0 / SC, TOWN.u1 / SC], vb = [TOWN.v0 / SC, TOWN.v1 / SC];
-    TOWN.roads.forEach(function (r) {
-      if (r[0] === "北側道路") return;                                   // 圖上沒有路名的道路不標
+    var order = TOWN.roads.filter(function (r) { return r[0] !== "北側道路"; })          // 圖上沒有路名的道路不標
+      .sort(function (a, b) { return (b[6] - a[6]) || ((b[5] - b[4]) - (a[5] - a[4])); });   // 主要道路、較長的路先放
+    order.forEach(function (r) {
       var lim = r[1] === "u" ? ub : vb, a = Math.max(r[4], lim[0]), b = Math.min(r[5], lim[1]);
-      (r[6] ? [0.18, 0.5, 0.82] : [0.3, 0.72]).forEach(function (f) {
+      var cross = TOWN.roads.filter(function (o) { return o !== r && o[1] !== r[1] && o[4] <= r[2] && o[5] >= r[2]; });
+      var fr = [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82, 0.1, 0.9], good = [], all = [];
+      fr.forEach(function (f) {
         var t = a + (b - a) * f, q = r[1] === "u" ? streetPos(t, r[2]) : streetPos(r[2], t);
-        if (!inHouse(q)) label(r[0], q[0], q[1], r[6] ? 40 : 30, r[6] ? "#10304d" : "#1b2a3a");
+        all.push(q);
+        if (!cross.some(function (o) { return Math.abs(t - o[2]) < 48; })) good.push(q);     // 盡量不標在路口上
       });
+      labelOnce(r[0], good.length ? good.concat(all) : all, r[6] ? 40 : 30, r[6] ? "#10304d" : "#1b2a3a");
     });
-    var sc = streetPos(140, -113); label("臺中市立文華高級中等學校", sc[0], sc[1], 28, "#1f5f2a");
-    label("房子", 0, 0, 40, "#4b2e18"); label("門 ↑", 0, -745, 26, "#8a5a00");
     label("北 ↑", OB.x0 + 420, OB.z0 + 330, 40, "#10304d");
   }
   function ovSize() {
