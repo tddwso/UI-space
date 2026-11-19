@@ -120,6 +120,19 @@
   /* 角色在屋內時隱藏外牆與屋頂：鏡頭拉遠、穿出牆外時仍看得到房間和角色（剖面效果） */
   .shell-off .wx, .shell-off .wxr { visibility: hidden; }
 
+  /* ================= 全景地圖 ================= */
+  .ov { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(5,8,14,.62); backdrop-filter: blur(3px); }
+  .ov[hidden] { display: none; }
+  .ovpanel { max-width: calc(100vw - 16px); padding: 10px 12px 12px; border-radius: 14px; color: #fff; background: rgba(22,27,34,.94); border: 1px solid rgba(255,255,255,.2); box-shadow: 0 16px 50px rgba(0,0,0,.5); }
+  .ovhead { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: 13px; }
+  .ovhead b { font-size: 16px; }
+  .ovhead span { flex: 1; opacity: .75; }
+  .ovwrap { position: relative; line-height: 0; cursor: crosshair; }
+  #ovc { display: block; border-radius: 8px; }
+  .ovme { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #2f81f7; border: 3px solid #fff; box-shadow: 0 0 0 3px rgba(47,129,247,.45), 0 2px 8px rgba(0,0,0,.5); pointer-events: none; }
+  .ovme::after { content: ""; position: absolute; left: 50%; top: -17px; margin-left: -7px; border: 7px solid transparent; border-bottom: 12px solid #2f81f7; border-top: 0; }
+  .mini { cursor: pointer; }
+
   /* 每面牆左上角的方位標示 */
   .tag { position: absolute; left: 18px; top: 14px; width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgba(43,29,20,.78); color: #fff; font: 700 20px/1 var(--font); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
   .floor, .ceil { left: -600px; top: -600px; width: 1200px; height: 1200px; }
@@ -363,6 +376,7 @@
 <header class="hud hud-top">
   <div class="brand"><span class="brand-mark"></span> UI 3D 房間</div>
   <div class="spacer"></div>
+  <button class="glass" id="mapBtn" title="全景地圖 (M)">🗺 全景地圖</button>
   <button class="glass" id="resetBtn" title="重置視角 (R)">重置視角</button>
   <button class="glass" id="themeBtn" aria-label="切換淺色／深色主題">🌓 主題</button>
 </header>
@@ -379,9 +393,15 @@
     <button class="glass" data-t="p">文華高中<small>6</small></button>
     <button class="glass" data-t="h">河南路<small>7</small></button>
   </div>
-  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前 · 5 門外 · 6 文華高中 · 7 河南路 · 房子、圍牆、樹和貨架都會擋住去路</div>
+  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前 · 5 門外 · 6 文華高中 · 7 河南路 · M 全景地圖 · 房子、圍牆、樹和貨架都會擋住去路</div>
 </div>
 
+<div class="ov" id="ov" hidden>
+  <div class="ovpanel">
+    <div class="ovhead"><b>全景地圖</b><span>由上往下看整個小鎮 · 點一下地圖就會傳送到那裡 · 按 M 或 Esc 關閉</span><button class="glass" id="ovx">✕ 關閉</button></div>
+    <div class="ovwrap"><canvas id="ovc"></canvas><i class="ovme" id="ovme"></i></div>
+  </div>
+</div>
 <div class="hud mini" id="mini" aria-hidden="true"><b class="n">北</b><b class="s">南</b><b class="w">西</b><b class="e">東</b><i id="miniDot"></i></div>
 <div class="hud joy" id="joy" aria-label="虛擬搖桿"><i id="knob"></i></div>
 
@@ -528,7 +548,7 @@
     [-460, -140, 490, 600], [140, 460, 490, 600],
     [-600, -490, 150, 450], [-445, -395, 355, 405], [-380, -280, 236, 364], [-585, -515, 510, 580]
   ];
-  var TOWN = { tx: 0, tz: 0, ca: 0, sa: 0, boxes: [], groups: [], houses: 0, sc: 14, u0: 0, u1: 0, v0: 0, v1: 0, ok: false };
+  var TOWN = { tx: 0, tz: 0, ca: 0, sa: 0, boxes: [], groups: [], houses: 0, roads: [], sc: 14, u0: 0, u1: 0, v0: 0, v1: 0, ok: false };
   var groundRedraw = null;                       // 小鎮地面的重畫函式（換主題時呼叫）
   // 可走區域：室內、門口走道、以及整張地圖（房子本體除外）
   function allowed(x, z) {
@@ -634,6 +654,7 @@
       ["內江街", "v", 458, 7, -330, -17, 0],
       ["北側道路", "u", -215, 10, -150, 560, 0]
     ];
+    TOWN.roads = ROADS;
     var minors = ROADS.filter(function (r) { return !r[6]; });
     var mains = ROADS.filter(function (r) { return r[6]; });
     var cvs = document.createElement("canvas");
@@ -713,7 +734,7 @@
       var w = (c.u2 - c.u1) * SC, d = (c.v2 - c.v1) * SC, h = c.f * 200 + 40;
       var cu = (c.u1 + c.u2) / 2 * SC, cv = (c.v1 + c.v2) / 2 * SC;
       tbox(w, h, d, HC[Math.floor(trnd() * HC.length)], cu, 0, cv, true, RC[Math.floor(trnd() * RC.length)]);
-      TOWN.boxes.push([c.u1 * SC, c.u2 * SC, c.v1 * SC, c.v2 * SC]);
+      TOWN.boxes.push([c.u1 * SC, c.u2 * SC, c.v1 * SC, c.v2 * SC, "h"]);
       if (trnd() > 0.45) {   // 頂樓水塔或樓梯間
         tbox(w * 0.32, 70, d * 0.32, "#c4c8cc", cu + (trnd() - 0.5) * w * 0.3, h, cv + (trnd() - 0.5) * d * 0.3, false, "#d9dcdf");
       }
@@ -724,14 +745,14 @@
       var u1 = s[0] * SC, u2 = s[1] * SC, v1 = s[2] * SC, v2 = s[3] * SC;
       if (!inRegion(gx((u1 + u2) / 2, (v1 + v2) / 2), gz((u1 + u2) / 2, (v1 + v2) / 2), Math.hypot(u2 - u1, v2 - v1) / 2)) return;
       tbox(u2 - u1, s[4] * 220 + 40, v2 - v1, s[5], (u1 + u2) / 2, 0, (v1 + v2) / 2, true, "#9a6a4a");
-      TOWN.boxes.push([u1, u2, v1, v2]);
+      TOWN.boxes.push([u1, u2, v1, v2, "s"]);
     });
     function fence(u1, v1, u2, v2) {
       var x = gx((u1 + u2) / 2 * SC, (v1 + v2) / 2 * SC), z = gz((u1 + u2) / 2 * SC, (v1 + v2) / 2 * SC);
       if (!inRegion(x, z, Math.hypot(u2 - u1, v2 - v1) * SC / 2)) return;
       var w = Math.max((u2 - u1) * SC, 12), d = Math.max((v2 - v1) * SC, 12);
       tbox(w, 70, d, "#a4a59f", (u1 + u2) / 2 * SC, 0, (v1 + v2) / 2 * SC, false, "#b9bab4");
-      TOWN.boxes.push([u1 * SC - 6, u2 * SC + 6, v1 * SC - 6, v2 * SC + 6]);
+      TOWN.boxes.push([u1 * SC - 6, u2 * SC + 6, v1 * SC - 6, v2 * SC + 6, "f"]);
     }
     fence(18, -24, 106, -24); fence(154, -24, 262, -24);    // 南側圍牆（中間是校門）
     fence(18, -201, 262, -201); fence(18, -201, 18, -24); fence(262, -201, 262, -24);
@@ -749,7 +770,7 @@
       if (!inRegion(gx(u, v), gz(u, v), 60)) return;
       tbox(18, 90, 18, "#6b4a2b", u, 0, v, false);
       tbox(110, 110, 110, "#4f8a4a", u, 90, v, false, "#62a15b");
-      TOWN.boxes.push([u - 10, u + 10, v - 10, v + 10]);
+      TOWN.boxes.push([u - 10, u + 10, v - 10, v + 10, "t"]);
     });
 
     /* ---- 路牌 ---- */
@@ -837,6 +858,111 @@
     C.x = S.x; C.z = S.z; C.yaw = t[2]; C.pitch = 18; C.D = 400;
     cullTown(S.x, S.z);
   }
+  function moveTo(x, z) {
+    var f = freeSpot(x, z);
+    if (!allowed(f[0], f[1]) || blocked(f[0], f[1])) return false;
+    S.x = f[0]; S.z = f[1]; C.x = S.x; C.z = S.z;
+    cullTown(S.x, S.z);
+    return true;
+  }
+
+  /* ---------- 全景地圖：由上往下看整個小鎮，標出路名與目前位置 ---------- */
+  var ov = $("ov"), ovc = $("ovc"), ovme = $("ovme"), ovOpen = false, OB = null;
+  function ovBounds() {
+    var xs = [-640, 640], zs = [-640, 640];
+    [[TOWN.u0, TOWN.v0], [TOWN.u1, TOWN.v0], [TOWN.u0, TOWN.v1], [TOWN.u1, TOWN.v1]].forEach(function (c) {
+      var q = streetPos(c[0] / TOWN.sc, c[1] / TOWN.sc); xs.push(q[0]); zs.push(q[1]);
+    });
+    var x0 = Math.min.apply(null, xs) - 150, x1 = Math.max.apply(null, xs) + 150;
+    var z0 = Math.min.apply(null, zs) - 150, z1 = Math.max.apply(null, zs) + 150;
+    return { x0: x0, x1: x1, z0: z0, z1: z1, w: x1 - x0, h: z1 - z0 };
+  }
+  function drawOverview() {
+    var n = parseFloat(getComputedStyle(root).getPropertyValue("--night")) || 0;
+    function mx(hex) {
+      var v = parseInt(hex.slice(1), 16), t = n / 100, B = [11, 16, 32];
+      return "rgb(" + [v >> 16, (v >> 8) & 255, v & 255].map(function (c, i) { return Math.round(c * (1 - t) + B[i] * t); }).join(",") + ")";
+    }
+    var W = 1800, k = W / OB.w, SC = TOWN.sc, CA = TOWN.ca, SA = TOWN.sa;
+    ovc.width = W; ovc.height = Math.round(OB.h * k);
+    var g = ovc.getContext("2d");
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = mx("#8d8a7e"); g.fillRect(0, 0, ovc.width, ovc.height);
+    g.setTransform(k, 0, 0, k, -OB.x0 * k, -OB.z0 * k);
+
+    // 街道座標系（與重慶路平行）：地面、道路、建築
+    g.save();
+    g.transform(CA, -SA, SA, CA, TOWN.tx, TOWN.tz);
+    g.beginPath(); g.rect(TOWN.u0, TOWN.v0, TOWN.u1 - TOWN.u0, TOWN.v1 - TOWN.v0); g.clip();
+    g.fillStyle = mx("#d9d4c3"); g.fillRect(TOWN.u0, TOWN.v0, TOWN.u1 - TOWN.u0, TOWN.v1 - TOWN.v0);
+    g.fillStyle = mx("#b7c79e"); g.fillRect(18 * SC, -201 * SC, 244 * SC, 176 * SC);          // 操場草地
+    function band(r, half) {
+      var pos = r[2] * SC, a = r[4] * SC, b = r[5] * SC;
+      if (r[1] === "u") g.fillRect(a, pos - half, b - a, half * 2); else g.fillRect(pos - half, a, half * 2, b - a);
+    }
+    var mains = TOWN.roads.filter(function (r) { return r[6]; }), minors = TOWN.roads.filter(function (r) { return !r[6]; });
+    g.fillStyle = mx("#c9c5b6"); TOWN.roads.forEach(function (r) { band(r, r[3] * SC + 42); });     // 人行道
+    g.fillStyle = mx("#6b7078"); mains.forEach(function (r) { band(r, r[3] * SC); });
+    g.fillStyle = mx("#7a7f86"); minors.forEach(function (r) { band(r, r[3] * SC); });              // 柏油路面
+    TOWN.boxes.forEach(function (b) {
+      var t = b[4], w = b[1] - b[0], d = b[3] - b[2];
+      if (t === "t") { g.fillStyle = mx("#5a9a52"); g.beginPath(); g.arc((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, 62, 0, 6.2832); g.fill(); return; }
+      g.fillStyle = mx(t === "h" ? "#ecdcb8" : t === "s" ? "#e2d0a0" : "#8f918b");
+      g.fillRect(b[0], b[2], w, d);
+      if (t !== "f") { g.strokeStyle = mx("#9c8c68"); g.lineWidth = 9; g.strokeRect(b[0], b[2], w, d); }
+    });
+    g.restore();
+
+    // 我們的房子（世界座標、北方朝上）與北牆的門
+    g.fillStyle = mx("#8a5c36"); g.fillRect(-616, -616, 1232, 1232);
+    g.strokeStyle = mx("#4b2e18"); g.lineWidth = 24; g.strokeRect(-616, -616, 1232, 1232);
+    g.fillStyle = "#ffd27a"; g.fillRect(-150, -632, 300, 34);
+
+    // 文字（用一般像素座標畫，字才不會被縮放或旋轉）
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round";
+    function label(text, x, z, size, color) {
+      var X = (x - OB.x0) * k, Y = (z - OB.z0) * k;
+      g.font = "700 " + size + "px 'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif";
+      g.lineWidth = Math.max(5, size / 3.6); g.strokeStyle = "rgba(255,255,255,.93)"; g.strokeText(text, X, Y);
+      g.fillStyle = color || "#1b2a3a"; g.fillText(text, X, Y);
+    }
+    function inHouse(q) { return Math.abs(q[0]) < 700 && Math.abs(q[1]) < 700; }
+    var ub = [TOWN.u0 / SC, TOWN.u1 / SC], vb = [TOWN.v0 / SC, TOWN.v1 / SC];
+    TOWN.roads.forEach(function (r) {
+      if (r[0] === "北側道路") return;                                   // 圖上沒有路名的道路不標
+      var lim = r[1] === "u" ? ub : vb, a = Math.max(r[4], lim[0]), b = Math.min(r[5], lim[1]);
+      (r[6] ? [0.18, 0.5, 0.82] : [0.3, 0.72]).forEach(function (f) {
+        var t = a + (b - a) * f, q = r[1] === "u" ? streetPos(t, r[2]) : streetPos(r[2], t);
+        if (!inHouse(q)) label(r[0], q[0], q[1], r[6] ? 40 : 30, r[6] ? "#10304d" : "#1b2a3a");
+      });
+    });
+    var sc = streetPos(140, -113); label("臺中市立文華高級中等學校", sc[0], sc[1], 28, "#1f5f2a");
+    label("房子", 0, 0, 40, "#4b2e18"); label("門 ↑", 0, -745, 26, "#8a5a00");
+    label("北 ↑", OB.x0 + 420, OB.z0 + 330, 40, "#10304d");
+  }
+  function ovSize() {
+    var ar = OB.w / OB.h, w = Math.min(innerWidth - 44, (innerHeight - 120) * ar, 1500);
+    ovc.style.width = w + "px"; ovc.style.height = (w / ar) + "px";
+  }
+  function ovUpdate() {
+    ovme.style.left = ((S.x - OB.x0) / OB.w * 100) + "%";
+    ovme.style.top = ((S.z - OB.z0) / OB.h * 100) + "%";
+    ovme.style.transform = "rotate(" + (180 - S.h) + "deg)";
+  }
+  function openOv() { if (!TOWN.ok) return; OB = ovBounds(); drawOverview(); ovSize(); ov.hidden = false; ovOpen = true; ovUpdate(); }
+  function closeOv() { ov.hidden = true; ovOpen = false; }
+  function toggleOv() { if (ovOpen) closeOv(); else openOv(); }
+  ovc.addEventListener("click", function (e) {
+    var r = ovc.getBoundingClientRect();
+    if (moveTo(OB.x0 + (e.clientX - r.left) / r.width * OB.w, OB.z0 + (e.clientY - r.top) / r.height * OB.h)) closeOv();
+  });
+  ov.addEventListener("click", function (e) { if (e.target === ov) closeOv(); });
+  $("ovx").addEventListener("click", closeOv);
+  $("mapBtn").addEventListener("click", toggleOv);
+  $("mini").addEventListener("click", openOv);
+  addEventListener("resize", function () { if (ovOpen) ovSize(); });
+
   function resetCam() { C.yaw = 0; C.pitch = 22; C.D = 430; }
   var MOVE = { w: 1, a: 1, s: 1, d: 1, q: 1, e: 1, shift: 1, arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1 };
   addEventListener("keydown", function (e) {
@@ -851,6 +977,8 @@
     else if (k === "5") teleport("o");
     else if (k === "6") teleport("p");
     else if (k === "7") teleport("h");
+    else if (k === "m") toggleOv();
+    else if (k === "escape") closeOv();
   });
   addEventListener("keyup", function (e) { K[e.key.toLowerCase()] = false; });
   addEventListener("blur", function () { K = {}; });
@@ -946,6 +1074,7 @@
     layerUpdate();
     skyUpdate();
     if (t - cullT > 250) { cullT = t; cullTown(S.x, S.z); }
+    if (ovOpen) ovUpdate();
 
     // 靠近牆面提示
     var best = null, bd = 170;
@@ -978,6 +1107,7 @@
     root.setAttribute("data-theme", next);
     try { localStorage.setItem("theme", next); } catch (e) {}
     if (groundRedraw) groundRedraw();
+    if (ovOpen) drawOverview();
   });
   try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { if (groundRedraw) groundRedraw(); }); } catch (e) {}
 
