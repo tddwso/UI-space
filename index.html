@@ -662,6 +662,7 @@
       ["寧夏西三街", "v", -268, 7, -330, 330, 0]
     ];
     TOWN.roads = ROADS;
+    var PARK = TOWN.park = { name: "中仁公園", u1: -562, u2: -412, v1: 257, v2: 297 };
     var minors = ROADS.filter(function (r) { return !r[6]; });
     var mains = ROADS.filter(function (r) { return r[6]; });
     var U0 = TOWN.u0, U1 = TOWN.u1, V0 = TOWN.v0, V1 = TOWN.v1;
@@ -699,6 +700,14 @@
           else { for (var q = r[4] * SC; q < r[5] * SC; q += 300) fr(pos - 6, q, pos + 6, Math.min(q + 150, r[5] * SC)); }
         }
         ctx.fillStyle = mix("#b7c79e", n); fr(18 * SC, -201 * SC, 262 * SC, -25 * SC);          // 文華高中操場草地
+        ctx.fillStyle = mix("#9bd49a", n); fr(PARK.u1 * SC, PARK.v1 * SC, PARK.u2 * SC, PARK.v2 * SC);   // 公園草地
+        ctx.fillStyle = mix("#e2dcc4", n);                                                      // 公園步道（外圈與十字）
+        (function () {
+          var a = PARK.u1 * SC, b = PARK.u2 * SC, c = PARK.v1 * SC, d = PARK.v2 * SC, w = 34, m = 46;
+          fr(a + m, c + m, b - m, c + m + w); fr(a + m, d - m - w, b - m, d - m);
+          fr(a + m, c + m, a + m + w, d - m); fr(b - m - w, c + m, b - m, d - m);
+          fr((a + b) / 2 - w / 2, c + m, (a + b) / 2 + w / 2, d - m);
+        })();
         ctx.fillStyle = mix("#aaa89f", n);                                                      // 人行道
         minors.forEach(function (r) { bandC(r, r[3] * SC + 42); });
         mains.forEach(function (r) { bandC(r, r[3] * SC + 42); });
@@ -746,7 +755,10 @@
       c.r = Math.hypot(c.u2 - c.u1, c.v2 - c.v1) * SC / 2;
       c.dist = Math.hypot(c.x, c.z + 640);
     });
-    cands = cands.filter(function (c) { return inRegion(c.x, c.z, c.r) && c.dist > 520 + c.r * 0.7; });
+    cands = cands.filter(function (c) {
+      var onPark = c.u2 > PARK.u1 - 3 && c.u1 < PARK.u2 + 3 && c.v2 > PARK.v1 - 3 && c.v1 < PARK.v2 + 3;
+      return !onPark && inRegion(c.x, c.z, c.r) && c.dist > 520 + c.r * 0.7;
+    });
     cands.sort(function (a, b) { return a.dist - b.dist; });
     TOWN.houses = cands.length;
     cands.forEach(function (c) {
@@ -792,12 +804,35 @@
       TOWN.boxes.push([u - 10, u + 10, v - 10, v + 10, "t"]);
     });
 
+    /* ---- 中仁公園：樹、涼亭、長椅 ---- */
+    (function park() {
+      var cu = (PARK.u1 + PARK.u2) / 2, cv = (PARK.v1 + PARK.v2) / 2;
+      if (!inRegion(gx(cu * SC, cv * SC), gz(cu * SC, cv * SC), 40)) return;
+      var tr = [];
+      for (var u = PARK.u1 + 12; u <= PARK.u2 - 12; u += 25) { tr.push([u, PARK.v1 + 8]); tr.push([u, PARK.v2 - 8]); }
+      tr.push([PARK.u1 + 8, cv]); tr.push([PARK.u2 - 8, cv]);
+      tr.forEach(function (t) {
+        if (Math.abs(t[0] - cu) < 12 && Math.abs(t[1] - cv) < 14) return;        // 涼亭的位置不種樹
+        var u = t[0] * SC, v = t[1] * SC;
+        tbox(18, 90, 18, "#6b4a2b", u, 0, v, false);
+        tbox(110, 110, 110, "#4f8a4a", u, 90, v, false, "#62a15b");
+        TOWN.boxes.push([u - 10, u + 10, v - 10, v + 10, "t"]);
+      });
+      // 涼亭：四根柱子加屋頂
+      var pu = cu * SC, pv = cv * SC;
+      [[-50, -50], [50, -50], [-50, 50], [50, 50]].forEach(function (o) { tbox(14, 120, 14, "#b9855a", pu + o[0], 0, pv + o[1], false); });
+      tbox(160, 26, 160, "#c9a06c", pu, 120, pv, false, "#8d5f48");
+      TOWN.boxes.push([pu - 60, pu + 60, pv - 60, pv + 60, "s"]);
+      // 長椅（矮、不擋路）
+      [[-0.3, 0], [0.3, 0]].forEach(function (o) { tbox(110, 34, 30, "#8a6a4a", (cu + o[0] * (PARK.u2 - PARK.u1)) * SC, 0, (PARK.v1 + 13) * SC + 20, false, "#a88660"); });
+    })();
+
     /* ---- 路牌 ---- */
     [["重慶路", "u", 185, 21], ["重慶路", "u", -30, -21], ["寧夏路", "v", 17, 100], ["河南路一段", "v", 299, -60],
      ["寧夏東二街", "u", 100, 73], ["寧夏東一街", "u", 100, 178], ["寧夏東四街", "u", 100, 248],
      ["寧夏東五街", "v", 139, 110], ["寧夏東六街", "v", 214, 110], ["內江街", "v", 387, -100], ["內江街", "v", 468, -100],
      ["甘肅路一段", "v", -566, 110], ["寧夏西二街", "v", -122, 110], ["寧夏西三街", "v", -258, 110],
-     ["寧夏西一街", "u", -300, 73], ["寧夏西三街", "u", -400, 178], ["成都路", "u", -450, 252]].forEach(function (s) {
+     ["寧夏西一街", "u", -300, 73], ["寧夏西三街", "u", -400, 178], ["成都路", "u", -450, 252], ["中仁公園", "u", -520, 260]].forEach(function (s) {
       var u = s[2] * SC, v = s[3] * SC;
       if (!inRegion(gx(u, v), gz(u, v), 200)) return;
       tbox(10, 300, 10, "#7a7f86", u, 0, v, false);
@@ -925,6 +960,8 @@
     g.fillStyle = mx("#c9c5b6"); TOWN.roads.forEach(function (r) { band(r, r[3] * SC + 42); });     // 人行道
     g.fillStyle = mx("#6b7078"); mains.forEach(function (r) { band(r, r[3] * SC); });
     g.fillStyle = mx("#7a7f86"); minors.forEach(function (r) { band(r, r[3] * SC); });              // 柏油路面
+    g.fillStyle = mx("#9bd49a"); g.fillRect(TOWN.park.u1 * SC, TOWN.park.v1 * SC, (TOWN.park.u2 - TOWN.park.u1) * SC, (TOWN.park.v2 - TOWN.park.v1) * SC);
+    g.strokeStyle = mx("#6fae6e"); g.lineWidth = 12; g.strokeRect(TOWN.park.u1 * SC, TOWN.park.v1 * SC, (TOWN.park.u2 - TOWN.park.u1) * SC, (TOWN.park.v2 - TOWN.park.v1) * SC);
     TOWN.boxes.forEach(function (b) {
       var t = b[4], w = b[1] - b[0], d = b[3] - b[2];
       if (t === "t") { g.fillStyle = mx("#5a9a52"); g.beginPath(); g.arc((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, 62, 0, 6.2832); g.fill(); return; }
@@ -971,6 +1008,7 @@
       placed.push(pickBox); label(text, pick[0], pick[1], size, color);
     }
     var sc = streetPos(140, -113); labelOnce("臺中市立文華高級中等學校", [sc], 28, "#1f5f2a");
+    var pk = streetPos((TOWN.park.u1 + TOWN.park.u2) / 2, (TOWN.park.v1 + TOWN.park.v2) / 2); labelOnce(TOWN.park.name, [pk], 30, "#1f5f2a");
     labelOnce("房子", [[0, 0]], 40, "#4b2e18"); labelOnce("門 ↑", [[0, -745]], 26, "#8a5a00");
     var ub = [TOWN.u0 / SC, TOWN.u1 / SC], vb = [TOWN.v0 / SC, TOWN.v1 / SC];
     var order = TOWN.roads.filter(function (r) { return r[0] !== "北側道路"; })          // 圖上沒有路名的道路不標
