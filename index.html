@@ -662,6 +662,10 @@
       ["寧夏西三街", "v", -268, 7, -330, 330, 0]
     ];
     TOWN.roads = ROADS;
+    var STATIONS = TOWN.stations = [
+      { name: "警察局", u1: -648, u2: -612, v1: -142, v2: -96, f: 3, col: "#c9d6e8", roof: "#34527a", acc: "#2f5fb0" },
+      { name: "消防局", u1: -648, u2: -612, v1: -84, v2: -38, f: 3, col: "#ecd2c8", roof: "#a83a2e", acc: "#c8372d" }
+    ];
     var PARK = TOWN.park = { name: "中仁公園", u1: -562, u2: -412, v1: 257, v2: 297 };
     var minors = ROADS.filter(function (r) { return !r[6]; });
     var mains = ROADS.filter(function (r) { return r[6]; });
@@ -757,7 +761,8 @@
     });
     cands = cands.filter(function (c) {
       var onPark = c.u2 > PARK.u1 - 3 && c.u1 < PARK.u2 + 3 && c.v2 > PARK.v1 - 3 && c.v1 < PARK.v2 + 3;
-      return !onPark && inRegion(c.x, c.z, c.r) && c.dist > 520 + c.r * 0.7;
+      var onSt = STATIONS.some(function (q) { return c.u2 > q.u1 - 3 && c.u1 < q.u2 + 3 && c.v2 > q.v1 - 3 && c.v1 < q.v2 + 3; });
+      return !onPark && !onSt && inRegion(c.x, c.z, c.r) && c.dist > 520 + c.r * 0.7;
     });
     cands.sort(function (a, b) { return a.dist - b.dist; });
     TOWN.houses = cands.length;
@@ -826,6 +831,18 @@
       // 長椅（矮、不擋路）
       [[-0.3, 0], [0.3, 0]].forEach(function (o) { tbox(110, 34, 30, "#8a6a4a", (cu + o[0] * (PARK.u2 - PARK.u1)) * SC, 0, (PARK.v1 + 13) * SC + 20, false, "#a88660"); });
     })();
+
+    /* ---- 警察局、消防局 ---- */
+    STATIONS.forEach(function (q) {
+      var cu = (q.u1 + q.u2) / 2, cv = (q.v1 + q.v2) / 2;
+      if (!inRegion(gx(cu * SC, cv * SC), gz(cu * SC, cv * SC), 60)) { q.off = true; return; }
+      var w = (q.u2 - q.u1) * SC, d = (q.v2 - q.v1) * SC, h = q.f * 200 + 40;
+      tbox(w, h, d, q.col, cu * SC, 0, cv * SC, true, q.roof);
+      tbox(w + 10, 36, d + 10, q.acc, cu * SC, h - 120, cv * SC, false, q.acc);        // 彩色橫帶
+      tbox(w * 0.5, 60, d * 0.5, q.acc, cu * SC, h, cv * SC, false, q.roof);          // 屋頂標誌座
+      TOWN.boxes.push([q.u1 * SC, q.u2 * SC, q.v1 * SC, q.v2 * SC, "s"]);
+      plate(q.name, q.u2 + 1, cv, 230, 300, 70, 40, "v");                              // 面向甘肅路的招牌
+    });
 
     /* ---- 路牌 ---- */
     [["重慶路", "u", 185, 21], ["重慶路", "u", -30, -21], ["寧夏路", "v", 17, 100], ["河南路一段", "v", 299, -60],
@@ -1009,6 +1026,7 @@
     }
     var sc = streetPos(140, -113); labelOnce("臺中市立文華高級中等學校", [sc], 28, "#1f5f2a");
     var pk = streetPos((TOWN.park.u1 + TOWN.park.u2) / 2, (TOWN.park.v1 + TOWN.park.v2) / 2); labelOnce(TOWN.park.name, [pk], 30, "#1f5f2a");
+    TOWN.stations.forEach(function (q) { if (!q.off) labelOnce(q.name, [streetPos((q.u1 + q.u2) / 2, (q.v1 + q.v2) / 2)], 28, q.acc); });
     labelOnce("房子", [[0, 0]], 40, "#4b2e18"); labelOnce("門 ↑", [[0, -745]], 26, "#8a5a00");
     var ub = [TOWN.u0 / SC, TOWN.u1 / SC], vb = [TOWN.v0 / SC, TOWN.v1 / SC];
     var order = TOWN.roads.filter(function (r) { return r[0] !== "北側道路"; })          // 圖上沒有路名的道路不標
