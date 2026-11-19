@@ -376,8 +376,10 @@
     <button class="glass" data-t="e">東牆<small>3</small></button>
     <button class="glass" data-t="s">南牆<small>4</small></button>
     <button class="glass" data-t="o">門外<small>5</small></button>
+    <button class="glass" data-t="p">文華高中<small>6</small></button>
+    <button class="glass" data-t="h">河南路<small>7</small></button>
   </div>
-  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前 · 5 到門外街上 · 貨架與書桌會擋住去路</div>
+  <div class="help">W A S D／方向鍵 移動 · Shift 加速 · Q E 或拖曳轉視角 · 滾輪縮放 · 1–4 傳送到牆前 · 5 門外 · 6 文華高中 · 7 河南路 · 房子、圍牆、樹和貨架都會擋住去路</div>
 </div>
 
 <div class="hud mini" id="mini" aria-hidden="true"><b class="n">北</b><b class="s">南</b><b class="w">西</b><b class="e">東</b><i id="miniDot"></i></div>
@@ -526,21 +528,24 @@
     [-460, -140, 490, 600], [140, 460, 490, 600],
     [-600, -490, 150, 450], [-445, -395, 355, 405], [-380, -280, 236, 364], [-585, -515, 510, 580]
   ];
-  var OXR = 2400, OZR = 3100;
-  var TOWN = { tx: 0, tz: 0, ca: 0, sa: 0, boxes: [] };
+  var TOWN = { tx: 0, tz: 0, ca: 0, sa: 0, boxes: [], groups: [], houses: 0, sc: 14, u0: 0, u1: 0, v0: 0, v1: 0, ok: false };
   var groundRedraw = null;                       // 小鎮地面的重畫函式（換主題時呼叫）
-  // 可走區域：室內、門口走道、門外街道
+  // 可走區域：室內、門口走道、以及整張地圖（房子本體除外）
   function allowed(x, z) {
     if (x >= -LIM && x <= LIM && z >= -LIM && z <= LIM) return true;
     if (x >= -105 && x <= 105 && z < -LIM && z >= -680) return true;
-    return x >= -OXR && x <= OXR && z >= -OZR && z < -660;
+    if (Math.abs(x) < 640 && z > -640 && z < 640) return false;      // 房子的牆與屋身
+    if (!TOWN.ok) return false;
+    var du = x - TOWN.tx, dz = z - TOWN.tz;
+    var gu = du * TOWN.ca - dz * TOWN.sa, gv = du * TOWN.sa + dz * TOWN.ca;
+    return gu >= TOWN.u0 && gu <= TOWN.u1 && gv >= TOWN.v0 && gv <= TOWN.v1;
   }
   function blocked(x, z) {
     for (var i = 0; i < COL.length; i++) {
       var r = COL[i];
       if (x > r[0] - 24 && x < r[1] + 24 && z > r[2] - 24 && z < r[3] + 24) return true;
     }
-    if (z < -640) {
+    if (!(Math.abs(x) < 640 && z > -640 && z < 640)) {     // 在房子外面才檢查小鎮的建築與樹
       var du = x - TOWN.tx, dz = z - TOWN.tz;
       var gu = du * TOWN.ca - dz * TOWN.sa, gv = du * TOWN.sa + dz * TOWN.ca;
       for (var k = 0; k < TOWN.boxes.length; k++) {
@@ -567,7 +572,15 @@
     function tcol(c) { return "color-mix(in srgb," + c + ",#0b1020 var(--night))"; }
     function gx(u, v) { return TX + u * CA + v * SA; }
     function gz(u, v) { return TZ - u * SA + v * CA; }
-    function inRegion(x, z, r) { return z + r < -700 && z > -OZR - 300 && Math.abs(x) < OXR + 300; }
+    // 地圖範圍（與重慶路平行的 u 軸、與寧夏路平行的 v 軸，單位：地圖像素）
+    TOWN.sc = SC; TOWN.u0 = -125 * SC; TOWN.u1 = 545 * SC; TOWN.v0 = -228 * SC; TOWN.v1 = 300 * SC; TOWN.ok = true;
+    // 建築要在地圖範圍內，且不能壓到房子本身（房子範圍 ±616，外加人行道餘裕）
+    function inRegion(x, z, r) {
+      if (Math.max(Math.abs(x), Math.abs(z)) < 760 + r * 0.7) return false;
+      var du = x - TX, dz = z - TZ;
+      var gu = du * CA - dz * SA, gv = du * SA + dz * CA;
+      return gu - r > TOWN.u0 && gu + r < TOWN.u1 && gv - r > TOWN.v0 && gv + r < TOWN.v1;
+    }
 
     // 簡單方塊（無底面）：b = 離地高度，win = 四面是否有窗戶
     function tbox(w, h, d, col, x, b, z, win, roof) {
@@ -588,6 +601,7 @@
       f(d, h, "rotateY(-90deg) translateZ(" + w / 2 + "px)", fc, "rgba(0,0,0,.22)", wc);
       f(w, d, "rotateX(90deg) translateZ(" + h / 2 + "px)", rc, "rgba(255,255,255,.12)", "");
       town.appendChild(g);
+      TOWN.groups.push({ el: g, x: gx(x, z), z: gz(x, z), r: Math.hypot(w, d) / 2, on: true });
     }
     // 雙面路牌
     function plate(text, u, v, y, w, h, fs, axis) {
@@ -623,15 +637,9 @@
     var minors = ROADS.filter(function (r) { return !r[6]; });
     var mains = ROADS.filter(function (r) { return r[6]; });
     var cvs = document.createElement("canvas");
-    cvs.width = 3072; cvs.height = 2560;
+    var U0 = TOWN.u0, U1 = TOWN.u1, V0 = TOWN.v0, V1 = TOWN.v1;
+    cvs.width = 4096; cvs.height = Math.round(4096 * (V1 - V0) / (U1 - U0));
     var ctx = cvs.getContext("2d");
-    // 覆蓋範圍：可看到的地區（世界座標 x ±3600、z -4400…-600）在街道座標系裡的外接矩形
-    var cs = [[-3600, -4400], [3600, -4400], [-3600, -600], [3600, -600]].map(function (q) {
-      var du = q[0] - TX, dz = q[1] - TZ;
-      return [du * CA - dz * SA, du * SA + dz * CA];
-    });
-    var U0 = Math.min.apply(null, cs.map(function (c) { return c[0]; })), U1 = Math.max.apply(null, cs.map(function (c) { return c[0]; }));
-    var V0 = Math.min.apply(null, cs.map(function (c) { return c[1]; })), V1 = Math.max.apply(null, cs.map(function (c) { return c[1]; }));
     var kx = cvs.width / (U1 - U0), ky = cvs.height / (V1 - V0);
     function mix(hex, n) {                     // 與夜色混合（對應 CSS 的 color-mix(... var(--night))）
       var v = parseInt(hex.slice(1), 16), t = n / 100, B = [11, 16, 32];
@@ -700,7 +708,8 @@
     });
     cands = cands.filter(function (c) { return inRegion(c.x, c.z, c.r) && c.dist > 520 + c.r * 0.7; });
     cands.sort(function (a, b) { return a.dist - b.dist; });
-    cands.slice(0, 80).forEach(function (c) {
+    TOWN.houses = cands.length;
+    cands.forEach(function (c) {
       var w = (c.u2 - c.u1) * SC, d = (c.v2 - c.v1) * SC, h = c.f * 200 + 40;
       var cu = (c.u1 + c.u2) / 2 * SC, cv = (c.v1 + c.v2) / 2 * SC;
       tbox(w, h, d, HC[Math.floor(trnd() * HC.length)], cu, 0, cv, true, RC[Math.floor(trnd() * RC.length)]);
@@ -795,10 +804,38 @@
   /* ---------- 輸入：鍵盤 ---------- */
   var typing = function (t) { return t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable); };
   var TELE = { n: [0, -360, 0, 180], w: [-360, 0, -90, 90 * -1], e: [360, 0, 90, 90], s: [0, 360, 180, 0], o: [0, -1000, 0, 180] };
+  // 街道座標（地圖像素）換成世界座標
+  function streetPos(u, v) {
+    var U = u * TOWN.sc, V = v * TOWN.sc;
+    return [TOWN.tx + U * TOWN.ca + V * TOWN.sa, TOWN.tz - U * TOWN.sa + V * TOWN.ca];
+  }
+  TELE.p = streetPos(130, -10).concat([-27.8, -152.2]);   // 文華高中校門前（面向校門）
+  TELE.h = streetPos(282, 30).concat([-27.8, -152.2]);    // 河南路一段路口
+  function freeSpot(x, z) {
+    if (allowed(x, z) && !blocked(x, z)) return [x, z];
+    for (var r = 40; r <= 800; r += 40) {
+      for (var a = 0; a < 360; a += 30) {
+        var nx = x + r * Math.cos(a * Math.PI / 180), nz = z + r * Math.sin(a * Math.PI / 180);
+        if (allowed(nx, nz) && !blocked(nx, nz)) return [nx, nz];
+      }
+    }
+    return [x, z];
+  }
+  // 依距離顯示／隱藏小鎮的方塊：全部同時畫會太慢，只畫角色周圍
+  var CULL_R = 3800, cullT = 0;
+  function cullTown(x, z) {
+    var G = TOWN.groups;
+    for (var i = 0; i < G.length; i++) {
+      var g = G[i], on = Math.hypot(g.x - x, g.z - z) - g.r < CULL_R + (g.on ? 500 : 0);
+      if (on !== g.on) { g.on = on; g.el.style.display = on ? "" : "none"; }
+    }
+  }
   function teleport(k) {
     var t = TELE[k]; if (!t) return;
-    S.x = t[0]; S.z = t[1]; S.h = t[3];
+    var f = freeSpot(t[0], t[1]);
+    S.x = f[0]; S.z = f[1]; S.h = t[3];
     C.x = S.x; C.z = S.z; C.yaw = t[2]; C.pitch = 18; C.D = 400;
+    cullTown(S.x, S.z);
   }
   function resetCam() { C.yaw = 0; C.pitch = 22; C.D = 430; }
   var MOVE = { w: 1, a: 1, s: 1, d: 1, q: 1, e: 1, shift: 1, arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1 };
@@ -812,6 +849,8 @@
     else if (k === "3") teleport("e");
     else if (k === "4") teleport("s");
     else if (k === "5") teleport("o");
+    else if (k === "6") teleport("p");
+    else if (k === "7") teleport("h");
   });
   addEventListener("keyup", function (e) { K[e.key.toLowerCase()] = false; });
   addEventListener("blur", function () { K = {}; });
@@ -906,10 +945,12 @@
     render();
     layerUpdate();
     skyUpdate();
+    if (t - cullT > 250) { cullT = t; cullTown(S.x, S.z); }
 
     // 靠近牆面提示
     var best = null, bd = 170;
-    WALLS.forEach(function (w) { var v = w.d(); if (v < bd && v > 0) { bd = v; best = w; } });
+    var inRoom = Math.abs(S.x) < 620 && Math.abs(S.z) < 620;
+    if (inRoom) WALLS.forEach(function (w) { var v = w.d(); if (v < bd && v > 0) { bd = v; best = w; } });
     var txt = best ? "靠近 " + best.name : "";
     if (txt !== lastNear) { lastNear = txt; near.textContent = txt; near.classList.toggle("on", !!txt); }
 
